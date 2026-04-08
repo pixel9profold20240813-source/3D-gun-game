@@ -3,109 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBER STRIKE - Sci-Fi FPS</title>
+    <title>NEON PROTOCOL - Sci-Fi FPS</title>
     <style>
         :root { --neon-cyan: #00f2ff; --neon-magenta: #ff00ff; }
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: #050505; color: white; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #000; color: white; }
         canvas { display: block; }
 
-        /* UI Overlays */
+        /* Crosshair */
         #crosshair {
             position: absolute; top: 50%; left: 50%;
-            width: 18px; height: 18px;
-            border: 2px solid var(--neon-cyan); border-radius: 50%;
+            width: 20px; height: 20px;
+            border: 1px solid var(--neon-cyan); border-radius: 50%;
             transform: translate(-50%, -50%); pointer-events: none; z-index: 10;
         }
-        #crosshair::before { content: ''; position: absolute; top: 50%; left: 50%; width: 2px; height: 2px; background: white; transform: translate(-50%, -50%); }
 
+        /* HUD */
         #hud {
             position: absolute; bottom: 30px; left: 30px;
             pointer-events: none; display: none;
         }
-        .stat-label { font-size: 14px; color: var(--neon-cyan); text-transform: uppercase; letter-spacing: 2px; }
-        .stat-value { font-size: 32px; font-weight: bold; margin-bottom: 10px; }
-        
-        #hp-container { width: 250px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; border: 1px solid var(--neon-cyan); }
-        #hp-fill { width: 100%; height: 100%; background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); transition: width 0.3s; }
+        .hud-label { font-size: 12px; color: var(--neon-cyan); letter-spacing: 2px; text-transform: uppercase; }
+        .hud-value { font-size: 28px; font-weight: bold; margin-bottom: 5px; }
+        #hp-bar { width: 200px; height: 6px; border: 1px solid var(--neon-cyan); margin-top: 5px; }
+        #hp-fill { width: 100%; height: 100%; background: var(--neon-cyan); transition: width 0.3s; }
 
         #ammo-hud { position: absolute; bottom: 30px; right: 40px; text-align: right; display: none; }
 
-        /* Settings Button */
-        #settings-btn {
-            position: absolute; top: 20px; right: 20px;
-            background: rgba(255,255,255,0.1); border: 1px solid var(--neon-cyan);
-            color: white; padding: 10px; cursor: pointer; border-radius: 5px; z-index: 110;
-        }
-
         /* Panels */
-        .overlay-panel {
+        .panel {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9); border: 2px solid var(--neon-cyan);
-            padding: 40px; border-radius: 15px; text-align: center; z-index: 100; min-width: 300px;
-            box-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
+            background: rgba(0, 5, 10, 0.95); border: 1px solid var(--neon-cyan);
+            padding: 40px; border-radius: 5px; text-align: center; z-index: 100; min-width: 280px;
         }
-        button.primary-btn {
-            background: transparent; border: 2px solid var(--neon-cyan); color: var(--neon-cyan);
-            padding: 15px 40px; font-size: 20px; cursor: pointer; text-transform: uppercase;
-            letter-spacing: 3px; transition: 0.3s;
+        button {
+            background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
+            padding: 12px 30px; font-size: 16px; cursor: pointer; text-transform: uppercase;
+            transition: 0.3s; margin-top: 20px;
         }
-        button.primary-btn:hover { background: var(--neon-cyan); color: black; box-shadow: 0 0 20px var(--neon-cyan); }
+        button:hover { background: var(--neon-cyan); color: black; }
 
-        #settings-panel { display: none; }
-        .setting-row { margin: 20px 0; text-align: left; }
-        input[type="range"] { width: 100%; accent-color: var(--neon-cyan); }
-
-        #damage-flash {
-            position: absolute; top:0; left:0; width:100%; height:100%;
-            background: rgba(255,0,0,0); pointer-events: none; z-index: 5;
+        #settings-btn { position: absolute; top: 20px; right: 20px; z-index: 110; }
+        #settings-menu { display: none; }
+        
+        #damage-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 0, 0, 0); pointer-events: none; z-index: 5;
         }
 
-        #leaderboard-list { list-style: none; padding: 0; text-align: left; border-top: 1px solid #333; margin-top: 20px; }
-        #leaderboard-list li { padding: 10px 0; border-bottom: 1px solid #222; display: flex; justify-content: space-between; }
+        #leaderboard { list-style: none; padding: 0; margin-top: 20px; text-align: left; border-top: 1px solid #333; }
+        #leaderboard li { padding: 8px 0; border-bottom: 1px solid #111; display: flex; justify-content: space-between; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <div id="damage-flash"></div>
+    <div id="damage-overlay"></div>
     <div id="crosshair"></div>
     <button id="settings-btn">SETTINGS</button>
 
     <div id="hud">
-        <div class="stat-label">Subject Integrity</div>
-        <div class="stat-value"><span id="hp-text">150</span> / 150</div>
-        <div id="hp-container"><div id="hp-fill"></div></div>
-        <div class="stat-label" style="margin-top:20px;">Eliminations</div>
-        <div class="stat-value" id="score-text">0</div>
+        <div class="hud-label">Integrity</div>
+        <div class="hud-value"><span id="hp-txt">150</span> HP</div>
+        <div id="hp-bar"><div id="hp-fill"></div></div>
+        <div class="hud-label" style="margin-top:20px">Eliminations</div>
+        <div class="hud-value" id="score-txt">0</div>
     </div>
 
     <div id="ammo-hud">
-        <div class="stat-label">Energy Core</div>
-        <div class="stat-value"><span id="ammo-text">5</span> / 5</div>
-        <div id="reload-text" style="color:var(--neon-magenta); font-size:12px; visibility:hidden;">RELOADING...</div>
+        <div class="hud-label">Energy</div>
+        <div class="hud-value"><span id="ammo-txt">5</span> / 5</div>
+        <div id="reload-txt" style="color:var(--neon-magenta); visibility:hidden;">RELOADING...</div>
     </div>
 
-    <!-- Main Menu -->
-    <div id="main-menu" class="overlay-panel">
-        <h1 style="color:var(--neon-cyan); letter-spacing:10px;">CYBER STRIKE</h1>
-        <button class="primary-btn" id="start-btn">Initialize</button>
+    <div id="start-menu" class="panel">
+        <h1 style="letter-spacing: 5px; color: var(--neon-cyan);">INITIALIZING...</h1>
+        <button id="start-btn">Connect Consciousness</button>
     </div>
 
-    <!-- Settings Menu -->
-    <div id="settings-panel" class="overlay-panel">
-        <h3>SYSTEM SETTINGS</h3>
-        <div class="setting-row">
-            <label>SENSITIVITY: <span id="sens-val">0.002</span></label>
-            <input type="range" id="sens-slider" min="0.0005" max="0.008" step="0.0001" value="0.002">
+    <div id="settings-menu" class="panel">
+        <h3>SYSTEM PREFERENCES</h3>
+        <div style="text-align:left">
+            <label>Sensitivity: <span id="sens-val">0.0020</span></label><br>
+            <input type="range" id="sens-slider" min="0.0005" max="0.006" step="0.0001" value="0.002" style="width:100%">
         </div>
-        <button class="primary-btn" onclick="document.getElementById('settings-panel').style.display='none'">Back</button>
+        <button onclick="document.getElementById('settings-menu').style.display='none'">Apply</button>
     </div>
 
-    <!-- Game Over -->
-    <div id="game-over-panel" class="overlay-panel" style="display:none">
-        <h2 style="color:var(--neon-magenta);">CRITICAL FAILURE</h2>
-        <p>Your consciousness has been disconnected.</p>
-        <ul id="leaderboard-list"></ul>
-        <button class="primary-btn" onclick="location.reload()">Reboot</button>
+    <div id="death-menu" class="panel" style="display:none">
+        <h2 style="color:var(--neon-magenta)">CONNECTION LOST</h2>
+        <ul id="leaderboard"></ul>
+        <button onclick="location.reload()">Retry</button>
     </div>
 
     <script type="importmap">
@@ -135,78 +121,79 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- Game State ---
+        // --- Variables ---
         let score = 0, hp = 150, ammo = 5, isReloading = false;
         let sensitivity = 0.002, gameActive = false, gameEnded = false;
-        let pitch = 0, yaw = 0, recoilOffset = 0;
+        let yaw = 0, pitch = 0, recoilOffset = 0;
         const keys = {};
         const enemies = [];
+        const MAX_ENEMIES = 3;
 
-        // --- Settings ---
-        document.getElementById('settings-btn').onclick = (e) => {
-            e.stopPropagation();
-            document.getElementById('settings-panel').style.display = 'block';
-        };
+        // --- Settings UI ---
+        document.getElementById('settings-btn').onclick = () => document.getElementById('settings-menu').style.display = 'block';
         document.getElementById('sens-slider').oninput = (e) => {
             sensitivity = parseFloat(e.target.value);
             document.getElementById('sens-val').innerText = sensitivity.toFixed(4);
         };
 
-        // --- Scene Setup ---
+        // --- Three.js Setup ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x020205);
-        scene.fog = new THREE.Fog(0x020205, 10, 50);
+        scene.background = new THREE.Color(0x000205);
+        scene.fog = new THREE.Fog(0x000205, 5, 40);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
         camera.rotation.order = 'YXZ';
         
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.toneMapping = THREE.ReinhardToneMapping;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
         document.body.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0x404040, 2);
-        scene.add(ambientLight);
+        scene.add(new THREE.AmbientLight(0xffffff, 1.2)); // 調強環境光
+        const sun = new THREE.DirectionalLight(0x00f2ff, 0.8);
+        sun.position.set(5, 10, 5);
+        scene.add(sun);
 
-        // Grid Floor
-        const grid = new THREE.GridHelper(100, 50, 0x00f2ff, 0x002222);
+        // Floor
+        const grid = new THREE.GridHelper(100, 60, 0x00f2ff, 0x001111);
         scene.add(grid);
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial({ color: 0x050505 }));
-        floor.rotation.x = -Math.PI / 2;
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+        floor.rotation.x = -Math.PI/2;
         scene.add(floor);
 
-        // --- Gun Setup ---
-        const gunGroup = new THREE.Group();
-        const gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.15, 0.4), new THREE.MeshStandardMaterial({ color: 0x111111 }));
-        const gunNeon = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.16, 0.3), new THREE.MeshBasicMaterial({ color: 0x00f2ff }));
-        gunNeon.position.y = 0.02;
-        gunGroup.add(gunBody, gunNeon);
-        gunGroup.position.set(0.3, -0.25, -0.4);
-        camera.add(gunGroup);
+        // --- Gun ---
+        const gun = new THREE.Group();
+        const gBody = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.4), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+        const gNeon = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.13, 0.3), new THREE.MeshBasicMaterial({ color: 0x00f2ff }));
+        gNeon.position.y = 0.02;
+        gun.add(gBody, gNeon);
+        gun.position.set(0.25, -0.25, -0.4);
+        camera.add(gun);
         scene.add(camera);
 
         // --- Enemy Logic ---
         function createEnemy() {
+            if (enemies.length >= MAX_ENEMIES) return;
+
             const group = new THREE.Group();
-            const mat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
             const neonMat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
 
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.0, 0.4), mat);
-            body.position.y = 0.8;
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), mat);
-            head.position.y = 1.6;
-            const eye = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.05, 0.1), neonMat);
-            eye.position.set(0, 1.65, 0.2);
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 0.4), whiteMat);
+            body.position.y = 0.9;
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.45), whiteMat);
+            head.position.y = 1.7;
+            const eye = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.05, 0.1), neonMat);
+            eye.position.set(0, 1.75, 0.22);
             
-            // Robot Gun
-            const rGun = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.4), mat);
-            rGun.position.set(0.5, 1.0, 0.3);
+            const weapon = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.5), whiteMat);
+            weapon.position.set(0.5, 1.1, 0.3);
             
-            group.add(body, head, eye, rGun);
+            group.add(body, head, eye, weapon);
             
-            // Position
+            // Random Spawn
             const angle = Math.random() * Math.PI * 2;
-            const dist = 20 + Math.random() * 10;
+            const dist = 18 + Math.random() * 7;
             group.position.set(Math.cos(angle)*dist, 0, Math.sin(angle)*dist);
             
             group.userData = { hp: 2, lastShot: 0 };
@@ -214,55 +201,48 @@
             enemies.push(group);
         }
 
-        // Spawn 4 initial enemies
-        for(let i=0; i<4; i++) createEnemy();
-
-        // --- Combat System ---
+        // --- Combat ---
         function shoot() {
             if (!gameActive || isReloading || ammo <= 0) return;
-            
             ammo--;
-            document.getElementById('ammo-text').innerText = ammo;
+            document.getElementById('ammo-txt').innerText = ammo;
             
-            // Recoil Start
-            recoilOffset += 0.08; 
-            gunGroup.position.z += 0.1; // Gun kick back
+            // Recoil
+            recoilOffset += 0.08;
+            gun.position.z += 0.12;
 
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-            const hits = raycaster.intersectObjects(enemies, true);
+            const ray = new THREE.Raycaster();
+            ray.setFromCamera(new THREE.Vector2(0,0), camera);
+            const hits = ray.intersectObjects(enemies, true);
 
             if (hits.length > 0) {
                 let target = hits[0].object;
                 while(target.parent && !target.userData.hp) target = target.parent;
-                
                 if(target.userData.hp) {
                     target.userData.hp--;
                     if(target.userData.hp <= 0) {
                         scene.remove(target);
                         enemies.splice(enemies.indexOf(target), 1);
                         score++;
-                        document.getElementById('score-text').innerText = score;
-                        setTimeout(createEnemy, 2000);
+                        document.getElementById('score-txt').innerText = score;
                     }
                 }
             }
-            if (ammo === 0) reload();
+            if(ammo === 0) reload();
         }
 
         function reload() {
             if (isReloading) return;
             isReloading = true;
-            document.getElementById('reload-text').style.visibility = 'visible';
+            document.getElementById('reload-txt').style.visibility = 'visible';
             setTimeout(() => {
-                ammo = 5;
-                isReloading = false;
-                document.getElementById('ammo-text').innerText = ammo;
-                document.getElementById('reload-text').style.visibility = 'hidden';
+                ammo = 5; isReloading = false;
+                document.getElementById('ammo-txt').innerText = ammo;
+                document.getElementById('reload-txt').style.visibility = 'hidden';
             }, 1500);
         }
 
-        // --- Game Loops ---
+        // --- Loop ---
         function animate(t) {
             requestAnimationFrame(animate);
             if (!gameActive || gameEnded) {
@@ -270,7 +250,10 @@
                 return;
             }
 
-            // 1. Movement
+            // 1. Maintain Enemy Count
+            if (enemies.length < MAX_ENEMIES) createEnemy();
+
+            // 2. Movement
             const move = new THREE.Vector3();
             if(keys['KeyW']) move.z -= 1; if(keys['KeyS']) move.z += 1;
             if(keys['KeyA']) move.x -= 1; if(keys['KeyD']) move.x += 1;
@@ -278,83 +261,69 @@
             camera.position.x += (Math.sin(yaw)*move.z + Math.sin(yaw+Math.PI/2)*move.x) * 0.12;
             camera.position.z += (Math.cos(yaw)*move.z + Math.cos(yaw+Math.PI/2)*move.x) * 0.12;
 
-            // 2. Camera Recoil Handling (Return mechanism)
-            recoilOffset = THREE.MathUtils.lerp(recoilOffset, 0, 0.1); // Decay recoil
+            // 3. Camera & Gun
+            recoilOffset = THREE.MathUtils.lerp(recoilOffset, 0, 0.1);
             camera.rotation.set(pitch + recoilOffset, yaw, 0);
-
-            // 3. Gun Animations
-            gunGroup.position.z = THREE.MathUtils.lerp(gunGroup.position.z, -0.4, 0.1);
-            if(isReloading) gunGroup.rotation.x = THREE.MathUtils.lerp(gunGroup.rotation.x, -1, 0.1);
-            else gunGroup.rotation.x = THREE.MathUtils.lerp(gunGroup.rotation.x, 0, 0.1);
+            gun.position.z = THREE.MathUtils.lerp(gun.position.z, -0.4, 0.1);
+            if(isReloading) gun.rotation.x = THREE.MathUtils.lerp(gun.rotation.x, -1, 0.1);
+            else gun.rotation.x = THREE.MathUtils.lerp(gun.rotation.x, 0, 0.1);
 
             // 4. Enemy AI
             enemies.forEach(en => {
                 en.lookAt(camera.position.x, 0, camera.position.z);
-                const dist = en.position.distanceTo(camera.position);
-                if(dist > 8) {
-                    en.translateZ(0.05);
-                } else {
-                    // Attack
-                    if(t - en.userData.lastShot > 1500) {
-                        playerHit();
-                        en.userData.lastShot = t;
-                    }
+                const d = en.position.distanceTo(camera.position);
+                if(d > 9) en.translateZ(0.06);
+                else if(t - en.userData.lastShot > 1600) {
+                    takeDamage();
+                    en.userData.lastShot = t;
                 }
             });
 
             renderer.render(scene, camera);
         }
 
-        function playerHit() {
+        function takeDamage() {
             hp -= 15;
-            document.getElementById('hp-text').innerText = Math.max(0, hp);
+            document.getElementById('hp-txt').innerText = Math.max(0, hp);
             document.getElementById('hp-fill').style.width = (hp / 150 * 100) + "%";
-            document.getElementById('damage-flash').style.background = 'rgba(255,0,0,0.2)';
-            setTimeout(() => document.getElementById('damage-flash').style.background = 'transparent', 100);
+            document.getElementById('damage-overlay').style.background = 'rgba(255,0,0,0.2)';
+            setTimeout(() => document.getElementById('damage-overlay').style.background = 'transparent', 100);
             if(hp <= 0) endGame();
         }
 
         async function endGame() {
-            gameEnded = true;
-            gameActive = false;
+            gameEnded = true; gameActive = false;
             document.exitPointerLock();
-            const name = prompt("SYSTEM CRITICAL. ENTER ID FOR RECORDS:", "Unit_01") || "Unit_01";
-            
+            const name = prompt("CONNECTION SEVERED. ID:", "Unit_" + Math.floor(Math.random()*999)) || "Unit_N/A";
             try {
                 await addDoc(collection(db, "leaderboard"), { name, score, at: serverTimestamp() });
                 const snap = await getDocs(query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(5)));
-                const list = document.getElementById('leaderboard-list');
+                const list = document.getElementById('leaderboard');
                 list.innerHTML = "";
-                snap.forEach(d => list.innerHTML += `<li><span>${d.data().name}</span> <span>${d.data().score}</span></li>`);
-                document.getElementById('game-over-panel').style.display = 'block';
+                snap.forEach(d => list.innerHTML += `<li><span>${d.data().name}</span> <span>${d.data().score} KILLS</span></li>`);
+                document.getElementById('death-menu').style.display = 'block';
             } catch (e) { console.error(e); }
         }
 
-        // --- Event Listeners ---
+        // --- Listeners ---
         document.getElementById('start-btn').onclick = () => document.body.requestPointerLock();
-
         document.addEventListener('pointerlockchange', () => {
             if (document.pointerLockElement === document.body) {
                 gameActive = true;
-                document.getElementById('main-menu').style.display = 'none';
+                document.getElementById('start-menu').style.display = 'none';
                 document.getElementById('hud').style.display = 'block';
                 document.getElementById('ammo-hud').style.display = 'block';
-            } else {
-                gameActive = false;
-            }
+            } else gameActive = false;
         });
-
         document.addEventListener('mousemove', (e) => {
             if (!gameActive) return;
             yaw -= e.movementX * sensitivity;
             pitch -= e.movementY * sensitivity;
             pitch = Math.max(-1.4, Math.min(1.4, pitch));
         });
-
         document.addEventListener('mousedown', (e) => { if(e.button===0) shoot(); });
         document.addEventListener('keydown', (e) => { keys[e.code]=true; if(e.code==='KeyR') reload(); });
         document.addEventListener('keyup', (e) => keys[e.code]=false);
-
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
