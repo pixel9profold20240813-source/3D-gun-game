@@ -1,90 +1,111 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D FPS - Gun & Animation Edition</title>
+    <title>CYBER STRIKE - Sci-Fi FPS</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #87CEEB; }
+        :root { --neon-cyan: #00f2ff; --neon-magenta: #ff00ff; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: #050505; color: white; }
         canvas { display: block; }
 
-        /* 準心 */
+        /* UI Overlays */
         #crosshair {
             position: absolute; top: 50%; left: 50%;
-            width: 14px; height: 14px;
-            border: 2px solid rgba(255,255,255,0.8); border-radius: 50%;
+            width: 18px; height: 18px;
+            border: 2px solid var(--neon-cyan); border-radius: 50%;
             transform: translate(-50%, -50%); pointer-events: none; z-index: 10;
         }
+        #crosshair::before { content: ''; position: absolute; top: 50%; left: 50%; width: 2px; height: 2px; background: white; transform: translate(-50%, -50%); }
 
-        /* 遊戲 UI */
-        #game-ui {
-            position: absolute; top: 20px; left: 20px;
-            color: white; font-size: 20px; font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5); pointer-events: none; display: none;
+        #hud {
+            position: absolute; bottom: 30px; left: 30px;
+            pointer-events: none; display: none;
         }
-        #health-bar-container {
-            width: 200px; height: 15px; background: rgba(0,0,0,0.5);
-            border: 2px solid white; margin-top: 5px; border-radius: 10px; overflow: hidden;
-        }
-        #health-bar-fill { width: 100%; height: 100%; background: #ff4444; transition: width 0.2s; }
+        .stat-label { font-size: 14px; color: var(--neon-cyan); text-transform: uppercase; letter-spacing: 2px; }
+        .stat-value { font-size: 32px; font-weight: bold; margin-bottom: 10px; }
         
-        #ammo-ui {
-            position: absolute; bottom: 30px; right: 40px;
-            color: #ffcc00; font-size: 40px; font-weight: bold;
-            text-shadow: 2px 2px 10px rgba(0,0,0,0.8); display: none;
+        #hp-container { width: 250px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; border: 1px solid var(--neon-cyan); }
+        #hp-fill { width: 100%; height: 100%; background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); transition: width 0.3s; }
+
+        #ammo-hud { position: absolute; bottom: 30px; right: 40px; text-align: right; display: none; }
+
+        /* Settings Button */
+        #settings-btn {
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(255,255,255,0.1); border: 1px solid var(--neon-cyan);
+            color: white; padding: 10px; cursor: pointer; border-radius: 5px; z-index: 110;
         }
+
+        /* Panels */
+        .overlay-panel {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9); border: 2px solid var(--neon-cyan);
+            padding: 40px; border-radius: 15px; text-align: center; z-index: 100; min-width: 300px;
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
+        }
+        button.primary-btn {
+            background: transparent; border: 2px solid var(--neon-cyan); color: var(--neon-cyan);
+            padding: 15px 40px; font-size: 20px; cursor: pointer; text-transform: uppercase;
+            letter-spacing: 3px; transition: 0.3s;
+        }
+        button.primary-btn:hover { background: var(--neon-cyan); color: black; box-shadow: 0 0 20px var(--neon-cyan); }
+
+        #settings-panel { display: none; }
+        .setting-row { margin: 20px 0; text-align: left; }
+        input[type="range"] { width: 100%; accent-color: var(--neon-cyan); }
 
         #damage-flash {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 0, 0, 0); pointer-events: none; z-index: 5;
-            transition: background 0.1s;
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(255,0,0,0); pointer-events: none; z-index: 5;
         }
 
-        /* 選單與排行榜 */
-        #menu-panel, #leaderboard-panel {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px; border-radius: 20px;
-            text-align: center; width: 320px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 100;
-        }
-        button {
-            width: 100%; padding: 15px; margin-top: 10px;
-            background: #222; color: white; border: none;
-            border-radius: 10px; font-size: 18px; cursor: pointer;
-        }
-        #leaderboard-list { list-style: none; padding: 0; text-align: left; }
-        #leaderboard-list li { padding: 8px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
+        #leaderboard-list { list-style: none; padding: 0; text-align: left; border-top: 1px solid #333; margin-top: 20px; }
+        #leaderboard-list li { padding: 10px 0; border-bottom: 1px solid #222; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
 
     <div id="damage-flash"></div>
     <div id="crosshair"></div>
-    
-    <div id="game-ui">
-        <div>SCORE: <span id="score">0</span></div>
-        <div>TIME: <span id="timer">30</span>s</div>
-        <div id="health-bar-container"><div id="health-bar-fill"></div></div>
+    <button id="settings-btn">SETTINGS</button>
+
+    <div id="hud">
+        <div class="stat-label">Subject Integrity</div>
+        <div class="stat-value"><span id="hp-text">150</span> / 150</div>
+        <div id="hp-container"><div id="hp-fill"></div></div>
+        <div class="stat-label" style="margin-top:20px;">Eliminations</div>
+        <div class="stat-value" id="score-text">0</div>
     </div>
 
-    <div id="ammo-ui"><span id="ammo-val">5</span> / 5</div>
+    <div id="ammo-hud">
+        <div class="stat-label">Energy Core</div>
+        <div class="stat-value"><span id="ammo-text">5</span> / 5</div>
+        <div id="reload-text" style="color:var(--neon-magenta); font-size:12px; visibility:hidden;">RELOADING...</div>
+    </div>
 
-    <div id="menu-panel">
-        <h2 style="margin-top:0">FPS 戰鬥訓練</h2>
-        <p style="font-size: 14px; color: #666;">WASD 移動 | 左鍵射擊 | R 換彈</p>
-        <div style="text-align:left; margin: 15px 0;">
-            <label>靈敏度: <span id="sens-val">0.002</span></label>
-            <input type="range" id="sens-slider" min="0.0005" max="0.008" step="0.0005" value="0.002" style="width:100%">
+    <!-- Main Menu -->
+    <div id="main-menu" class="overlay-panel">
+        <h1 style="color:var(--neon-cyan); letter-spacing:10px;">CYBER STRIKE</h1>
+        <button class="primary-btn" id="start-btn">Initialize</button>
+    </div>
+
+    <!-- Settings Menu -->
+    <div id="settings-panel" class="overlay-panel">
+        <h3>SYSTEM SETTINGS</h3>
+        <div class="setting-row">
+            <label>SENSITIVITY: <span id="sens-val">0.002</span></label>
+            <input type="range" id="sens-slider" min="0.0005" max="0.008" step="0.0001" value="0.002">
         </div>
-        <button id="start-btn">開始遊戲</button>
+        <button class="primary-btn" onclick="document.getElementById('settings-panel').style.display='none'">Back</button>
     </div>
 
-    <div id="leaderboard-panel" style="display:none">
-        <h2 id="end-title">遊戲結束</h2>
+    <!-- Game Over -->
+    <div id="game-over-panel" class="overlay-panel" style="display:none">
+        <h2 style="color:var(--neon-magenta);">CRITICAL FAILURE</h2>
+        <p>Your consciousness has been disconnected.</p>
         <ul id="leaderboard-list"></ul>
-        <button onclick="location.reload()">再玩一次</button>
+        <button class="primary-btn" onclick="location.reload()">Reboot</button>
     </div>
 
     <script type="importmap">
@@ -102,241 +123,237 @@
         import { initializeApp } from "firebase/app";
         import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, serverTimestamp } from "firebase/firestore";
 
-        // --- Firebase ---
+        // --- Firebase Config ---
         const firebaseConfig = {
-          apiKey: "AIzaSyBufMLTIXLeBjj_kNTPKEKyKCU29Zb4iD8",
-          authDomain: "d-gungame.firebaseapp.com",
-          projectId: "d-gungame",
-          storageBucket: "d-gungame.firebasestorage.app",
-          messagingSenderId: "799621642625",
-          appId: "1:799621642625:web:16b00ab30d466f4c2fd080"
+            apiKey: "AIzaSyBufMLTIXLeBjj_kNTPKEKyKCU29Zb4iD8",
+            authDomain: "d-gungame.firebaseapp.com",
+            projectId: "d-gungame",
+            storageBucket: "d-gungame.firebasestorage.app",
+            messagingSenderId: "799621642625",
+            appId: "1:799621642625:web:16b00ab30d466f4c2fd080"
         };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- 核心變數 ---
-        let score = 0, ammo = 5, playerHP = 150;
-        let gameTime = 30, sensitivity = 0.002;
-        let gameActive = false, gameEnded = false;
-        let isReloading = false;
-        let recoilY = 0; // 用於平滑處理相機後座力
+        // --- Game State ---
+        let score = 0, hp = 150, ammo = 5, isReloading = false;
+        let sensitivity = 0.002, gameActive = false, gameEnded = false;
+        let pitch = 0, yaw = 0, recoilOffset = 0;
         const keys = {};
+        const enemies = [];
 
-        // --- 初始化 Three.js ---
+        // --- Settings ---
+        document.getElementById('settings-btn').onclick = (e) => {
+            e.stopPropagation();
+            document.getElementById('settings-panel').style.display = 'block';
+        };
+        document.getElementById('sens-slider').oninput = (e) => {
+            sensitivity = parseFloat(e.target.value);
+            document.getElementById('sens-val').innerText = sensitivity.toFixed(4);
+        };
+
+        // --- Scene Setup ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB);
+        scene.background = new THREE.Color(0x020205);
+        scene.fog = new THREE.Fog(0x020205, 10, 50);
+
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
         camera.rotation.order = 'YXZ';
+        
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.toneMapping = THREE.ReinhardToneMapping;
         document.body.appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-        const sun = new THREE.DirectionalLight(0xffffff, 0.6);
-        sun.position.set(10, 20, 10);
-        scene.add(sun);
+        const ambientLight = new THREE.AmbientLight(0x404040, 2);
+        scene.add(ambientLight);
 
-        // 地板
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshLambertMaterial({ color: 0x558833 }));
+        // Grid Floor
+        const grid = new THREE.GridHelper(100, 50, 0x00f2ff, 0x002222);
+        scene.add(grid);
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial({ color: 0x050505 }));
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
-        scene.add(new THREE.GridHelper(100, 40, 0x000000, 0x446622));
 
-        // --- 手持槍模與動畫 ---
+        // --- Gun Setup ---
         const gunGroup = new THREE.Group();
-        function buildGun() {
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.18, 0.5), new THREE.MeshLambertMaterial({ color: 0x222222 }));
-            const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.4), new THREE.MeshLambertMaterial({ color: 0x111111 }));
-            barrel.position.z = -0.3;
-            const grip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.25, 0.12), new THREE.MeshLambertMaterial({ color: 0x332211 }));
-            grip.position.set(0, -0.15, 0.1);
-            gunGroup.add(body, barrel, grip);
+        const gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.15, 0.4), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+        const gunNeon = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.16, 0.3), new THREE.MeshBasicMaterial({ color: 0x00f2ff }));
+        gunNeon.position.y = 0.02;
+        gunGroup.add(gunBody, gunNeon);
+        gunGroup.position.set(0.3, -0.25, -0.4);
+        camera.add(gunGroup);
+        scene.add(camera);
+
+        // --- Enemy Logic ---
+        function createEnemy() {
+            const group = new THREE.Group();
+            const mat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const neonMat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.0, 0.4), mat);
+            body.position.y = 0.8;
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), mat);
+            head.position.y = 1.6;
+            const eye = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.05, 0.1), neonMat);
+            eye.position.set(0, 1.65, 0.2);
             
-            // 初始槍枝在相機前的位置
-            gunGroup.position.set(0.3, -0.3, -0.5);
-            camera.add(gunGroup);
-            scene.add(camera);
+            // Robot Gun
+            const rGun = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.4), mat);
+            rGun.position.set(0.5, 1.0, 0.3);
+            
+            group.add(body, head, eye, rGun);
+            
+            // Position
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 20 + Math.random() * 10;
+            group.position.set(Math.cos(angle)*dist, 0, Math.sin(angle)*dist);
+            
+            group.userData = { hp: 2, lastShot: 0 };
+            scene.add(group);
+            enemies.push(group);
         }
-        buildGun();
 
-        // --- 機器人 AI ---
-        let dummy = new THREE.Group();
-        let dLArm, dRArm;
-        function buildDummy() {
-            const mat = new THREE.MeshLambertMaterial({ color: 0xff4444 });
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5), mat); head.position.y = 1.6;
-            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.8,1.0,0.4), mat); torso.position.y = 0.8;
-            dLArm = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.8,0.3), mat); dLArm.position.set(-0.6,0.9,0);
-            dRArm = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.8,0.3), mat); dRArm.position.set(0.6,0.9,0);
-            const lLeg = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.8,0.3), mat); lLeg.position.set(-0.25,0.4,0);
-            const rLeg = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.8,0.3), mat); rLeg.position.set(0.25,0.4,0);
-            dummy.add(head, torso, dLArm, dRArm, lLeg, rLeg);
-            scene.add(dummy);
-            respawnDummy();
-        }
-        function respawnDummy() {
-            const a = Math.random()*Math.PI*2;
-            dummy.position.set(Math.cos(a)*20, 0, Math.sin(a)*20);
-        }
-        buildDummy();
+        // Spawn 4 initial enemies
+        for(let i=0; i<4; i++) createEnemy();
 
-        // --- 戰鬥與動畫邏輯 ---
-        let gunBobTime = 0;
-        let gunKick = 0; // 開火回震量
-        let reloadAnim = 0; // 換彈進度 0~1
-
+        // --- Combat System ---
         function shoot() {
-            if (!gameActive || gameEnded || isReloading || ammo <= 0) {
-                if(ammo <= 0) reload();
-                return;
-            }
-            ammo--;
-            updateUI();
+            if (!gameActive || isReloading || ammo <= 0) return;
             
-            // 視覺回饋
-            gunKick = 0.15; // 槍枝向後震動
-            recoilY = 0.05; // 相機向上彈
+            ammo--;
+            document.getElementById('ammo-text').innerText = ammo;
+            
+            // Recoil Start
+            recoilOffset += 0.08; 
+            gunGroup.position.z += 0.1; // Gun kick back
 
-            const ray = new THREE.Raycaster();
-            ray.setFromCamera(new THREE.Vector2(0,0), camera);
-            if (ray.intersectObjects(dummy.children).length > 0) {
-                score++;
-                respawnDummy();
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+            const hits = raycaster.intersectObjects(enemies, true);
+
+            if (hits.length > 0) {
+                let target = hits[0].object;
+                while(target.parent && !target.userData.hp) target = target.parent;
+                
+                if(target.userData.hp) {
+                    target.userData.hp--;
+                    if(target.userData.hp <= 0) {
+                        scene.remove(target);
+                        enemies.splice(enemies.indexOf(target), 1);
+                        score++;
+                        document.getElementById('score-text').innerText = score;
+                        setTimeout(createEnemy, 2000);
+                    }
+                }
             }
+            if (ammo === 0) reload();
         }
 
         function reload() {
-            if (isReloading || ammo === 5) return;
+            if (isReloading) return;
             isReloading = true;
-            reloadAnim = 0;
+            document.getElementById('reload-text').style.visibility = 'visible';
             setTimeout(() => {
-                ammo = 5; isReloading = false;
-                updateUI();
-            }, 1200);
+                ammo = 5;
+                isReloading = false;
+                document.getElementById('ammo-text').innerText = ammo;
+                document.getElementById('reload-text').style.visibility = 'hidden';
+            }, 1500);
         }
 
-        function updateUI() {
-            document.getElementById('score').innerText = score;
-            document.getElementById('ammo-val').innerText = ammo;
-            document.getElementById('health-bar-fill').style.width = (playerHP/150*100) + "%";
-        }
-
-        // --- 主循環 ---
-        let lastAttack = 0;
-        camera.position.set(0, 1.7, 5);
-
+        // --- Game Loops ---
         function animate(t) {
             requestAnimationFrame(animate);
-            if (!gameActive || gameEnded) return;
+            if (!gameActive || gameEnded) {
+                renderer.render(scene, camera);
+                return;
+            }
 
-            // 1. 移動
+            // 1. Movement
             const move = new THREE.Vector3();
             if(keys['KeyW']) move.z -= 1; if(keys['KeyS']) move.z += 1;
             if(keys['KeyA']) move.x -= 1; if(keys['KeyD']) move.x += 1;
             move.normalize();
-            const yaw = camera.rotation.y;
             camera.position.x += (Math.sin(yaw)*move.z + Math.sin(yaw+Math.PI/2)*move.x) * 0.12;
             camera.position.z += (Math.cos(yaw)*move.z + Math.cos(yaw+Math.PI/2)*move.x) * 0.12;
 
-            // 2. 槍枝與相機動畫
-            // 相機回彈
-            camera.rotation.x += recoilY;
-            recoilY *= 0.8; // 相機抖動快速衰減
-            
-            // 走路搖擺
-            if(move.length() > 0) gunBobTime += 0.15;
-            const bobX = Math.cos(gunBobTime) * 0.01;
-            const bobY = Math.sin(gunBobTime * 2) * 0.01;
+            // 2. Camera Recoil Handling (Return mechanism)
+            recoilOffset = THREE.MathUtils.lerp(recoilOffset, 0, 0.1); // Decay recoil
+            camera.rotation.set(pitch + recoilOffset, yaw, 0);
 
-            // 換彈動畫處理
-            if(isReloading) {
-                reloadAnim = THREE.MathUtils.lerp(reloadAnim, 1, 0.05);
-                gunGroup.rotation.x = Math.sin(reloadAnim * Math.PI) * -0.8;
-                gunGroup.position.y = -0.3 + Math.sin(reloadAnim * Math.PI) * -0.2;
-            } else {
-                reloadAnim = 0;
-                gunGroup.rotation.x = 0;
-                gunGroup.position.set(0.3 + bobX, -0.3 + bobY, -0.5 + gunKick);
-            }
-            gunKick *= 0.8; // 槍枝震動回歸
+            // 3. Gun Animations
+            gunGroup.position.z = THREE.MathUtils.lerp(gunGroup.position.z, -0.4, 0.1);
+            if(isReloading) gunGroup.rotation.x = THREE.MathUtils.lerp(gunGroup.rotation.x, -1, 0.1);
+            else gunGroup.rotation.x = THREE.MathUtils.lerp(gunGroup.rotation.x, 0, 0.1);
 
-            // 3. 機器人 AI 與攻擊
-            dummy.lookAt(camera.position.x, 0, camera.position.z);
-            const dist = dummy.position.distanceTo(camera.position);
-            if(dist > 1.8) {
-                dummy.translateZ(0.07);
-            } else if(t - lastAttack > 1000) {
-                // 機器人攻擊動畫
-                dLArm.rotation.x = -1.5; dRArm.rotation.x = -1.5;
-                setTimeout(()=> { dLArm.rotation.x = 0; dRArm.rotation.x = 0; }, 200);
-                
-                playerHP -= 15;
-                lastAttack = t;
-                document.getElementById('damage-flash').style.background = 'rgba(255,0,0,0.3)';
-                setTimeout(()=> document.getElementById('damage-flash').style.background = 'transparent', 100);
-                updateUI();
-                if(playerHP <= 0) endGame("你被擊敗了！");
-            }
-            
-            // 機器人走路動畫
-            const dummySwing = Math.sin(t * 0.006) * 0.5;
-            dummy.children[4].rotation.x = dummySwing;
-            dummy.children[5].rotation.x = -dummySwing;
+            // 4. Enemy AI
+            enemies.forEach(en => {
+                en.lookAt(camera.position.x, 0, camera.position.z);
+                const dist = en.position.distanceTo(camera.position);
+                if(dist > 8) {
+                    en.translateZ(0.05);
+                } else {
+                    // Attack
+                    if(t - en.userData.lastShot > 1500) {
+                        playerHit();
+                        en.userData.lastShot = t;
+                    }
+                }
+            });
 
             renderer.render(scene, camera);
         }
 
-        // --- 事件監聽 ---
-        document.getElementById('start-btn').onclick = () => document.body.requestPointerLock();
-        const sensSlider = document.getElementById('sens-slider');
-        sensSlider.oninput = () => { sensitivity = parseFloat(sensSlider.value); document.getElementById('sens-val').innerText = sensitivity; };
-
-        document.addEventListener('pointerlockchange', () => {
-            if (document.pointerLockElement === document.body) {
-                gameActive = true;
-                document.getElementById('menu-panel').style.display = 'none';
-                document.getElementById('game-ui').style.display = 'block';
-                document.getElementById('ammo-ui').style.display = 'block';
-                if(score === 0) startTimer();
-            } else gameActive = false;
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if(gameActive) {
-                camera.rotation.y -= e.movementX * sensitivity;
-                camera.rotation.x -= e.movementY * sensitivity;
-                camera.rotation.x = Math.max(-1.4, Math.min(1.4, camera.rotation.x));
-            }
-        });
-
-        document.addEventListener('mousedown', (e) => { if(e.button===0) shoot(); });
-        document.addEventListener('keydown', (e) => { keys[e.code]=true; if(e.code==='KeyR') reload(); });
-        document.addEventListener('keyup', (e) => keys[e.code]=false);
-
-        function startTimer() {
-            const itv = setInterval(() => {
-                if(!gameActive || gameEnded) return;
-                gameTime--;
-                document.getElementById('timer').innerText = gameTime;
-                if(gameTime <= 0) { clearInterval(itv); endGame("時間到！"); }
-            }, 1000);
+        function playerHit() {
+            hp -= 15;
+            document.getElementById('hp-text').innerText = Math.max(0, hp);
+            document.getElementById('hp-fill').style.width = (hp / 150 * 100) + "%";
+            document.getElementById('damage-flash').style.background = 'rgba(255,0,0,0.2)';
+            setTimeout(() => document.getElementById('damage-flash').style.background = 'transparent', 100);
+            if(hp <= 0) endGame();
         }
 
-        async function endGame(title) {
-            if(gameEnded) return;
+        async function endGame() {
             gameEnded = true;
+            gameActive = false;
             document.exitPointerLock();
-            document.getElementById('end-title').innerText = title;
-            const name = prompt(`${title}\n分數: ${score}\n請輸入你的代號:`, "無名戰士") || "未知";
+            const name = prompt("SYSTEM CRITICAL. ENTER ID FOR RECORDS:", "Unit_01") || "Unit_01";
+            
             try {
                 await addDoc(collection(db, "leaderboard"), { name, score, at: serverTimestamp() });
                 const snap = await getDocs(query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(5)));
                 const list = document.getElementById('leaderboard-list');
                 list.innerHTML = "";
-                snap.forEach(d => list.innerHTML += `<li><span>${d.data().name}</span> <span>${d.data().score} Kills</span></li>`);
-                document.getElementById('leaderboard-panel').style.display = 'block';
+                snap.forEach(d => list.innerHTML += `<li><span>${d.data().name}</span> <span>${d.data().score}</span></li>`);
+                document.getElementById('game-over-panel').style.display = 'block';
             } catch (e) { console.error(e); }
         }
+
+        // --- Event Listeners ---
+        document.getElementById('start-btn').onclick = () => document.body.requestPointerLock();
+
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement === document.body) {
+                gameActive = true;
+                document.getElementById('main-menu').style.display = 'none';
+                document.getElementById('hud').style.display = 'block';
+                document.getElementById('ammo-hud').style.display = 'block';
+            } else {
+                gameActive = false;
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!gameActive) return;
+            yaw -= e.movementX * sensitivity;
+            pitch -= e.movementY * sensitivity;
+            pitch = Math.max(-1.4, Math.min(1.4, pitch));
+        });
+
+        document.addEventListener('mousedown', (e) => { if(e.button===0) shoot(); });
+        document.addEventListener('keydown', (e) => { keys[e.code]=true; if(e.code==='KeyR') reload(); });
+        document.addEventListener('keyup', (e) => keys[e.code]=false);
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
