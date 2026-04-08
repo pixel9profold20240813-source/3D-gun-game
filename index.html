@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBER STRIKE: ADVANCED PROTOCOL</title>
+    <title>CYBER STRIKE: PROTOCOL FIXED</title>
     <style>
-        :root { --neon: #00f2ff; --danger: #ff00ff; --hit: #ff0000; }
+        :root { --neon: #00f2ff; --danger: #ff00ff; }
         body { margin: 0; overflow: hidden; font-family: 'Consolas', monospace; background: #000; color: white; }
         canvas { display: block; }
 
         /* HUD */
         #crosshair {
             position: absolute; top: 50%; left: 50%;
-            width: 22px; height: 22px;
+            width: 20px; height: 20px;
             border: 1px solid var(--neon); border-radius: 50%;
             transform: translate(-50%, -50%); pointer-events: none; z-index: 10;
         }
@@ -42,7 +42,7 @@
         #settings-btn { position: absolute; top: 20px; right: 20px; z-index: 110; background: none; border: 1px solid #333; color: #888; cursor: pointer; padding: 8px 15px; }
         #damage-flash { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,0,0,0); pointer-events: none; z-index: 5; }
         #leaderboard { list-style: none; padding: 0; text-align: left; margin-top: 20px; }
-        #leaderboard li { padding: 10px 0; border-bottom: 1px solid #111; display: flex; justify-content: space-between; font-size: 14px; }
+        #leaderboard li { padding: 8px 0; border-bottom: 1px solid #111; display: flex; justify-content: space-between; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -55,12 +55,12 @@
         <div style="color:var(--neon); font-size:10px">SYSTEM HEALTH</div>
         <div class="hud-v"><span id="hp-txt">150</span> / 150</div>
         <div class="bar-bg"><div id="hp-fill"></div></div>
-        <div style="color:var(--neon); font-size:10px; margin-top:15px">THREATS ELIMINATED</div>
+        <div style="color:var(--neon); font-size:10px; margin-top:15px">KILLS</div>
         <div class="hud-v" id="score-txt">0</div>
     </div>
 
     <div id="ammo-hud">
-        <div style="color:var(--neon); font-size:10px">ENERGY CELLS</div>
+        <div style="color:var(--neon); font-size:10px">CELLS</div>
         <div class="hud-v"><span id="ammo-txt">20</span> / 20</div>
         <div id="reload-txt" style="color:var(--danger); font-size:12px; visibility:hidden;">RELOADING...</div>
     </div>
@@ -68,20 +68,19 @@
     <div id="main-menu" class="panel">
         <h1 style="color:var(--neon); letter-spacing:10px; margin-bottom: 30px;">CYBER STRIKE</h1>
         <button id="start-btn">INITIALIZE</button>
-        <p style="color:#555; font-size:12px; margin-top:20px;">WASD: Move | SPACE: Jump | R: Reload</p>
     </div>
 
     <div id="settings-menu" class="panel" style="display:none">
-        <h3 style="color:var(--neon)">SYSTEM CALIBRATION</h3>
+        <h3 style="color:var(--neon)">CALIBRATION</h3>
         <div style="text-align:left">
             <label>Sensitivity: <span id="sens-val">0.0020</span></label><br>
             <input type="range" id="sens-slider" min="0.0005" max="0.008" step="0.0001" value="0.002" style="width:100%">
         </div>
-        <button onclick="document.getElementById('settings-menu').style.display='none'">Save Config</button>
+        <button onclick="document.getElementById('settings-menu').style.display='none'">Save</button>
     </div>
 
     <div id="death-menu" class="panel" style="display:none">
-        <h2 style="color:var(--danger)">CONNECTION SEVERED</h2>
+        <h2 style="color:var(--danger)">DE-SYNCED</h2>
         <ul id="leaderboard"></ul>
         <button onclick="location.reload()">RE-LINK</button>
     </div>
@@ -101,7 +100,6 @@
         import { initializeApp } from "firebase/app";
         import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, serverTimestamp } from "firebase/firestore";
 
-        // --- Firebase (使用你提供的設定) ---
         const firebaseConfig = {
             apiKey: "AIzaSyBufMLTIXLeBjj_kNTPKEKyKCU29Zb4iD8",
             authDomain: "d-gungame.firebaseapp.com",
@@ -113,39 +111,27 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- Core ---
+        // Variables
         let score = 0, hp = 150, ammo = 20, isReloading = false;
         let sensitivity = 0.002, gameActive = false, gameEnded = false;
         let yaw = 0, pitch = 0, recoilOffset = 0;
+        let velocityY = 0, isGrounded = true;
         const keys = {};
         const enemies = [];
+        const obstacles = [];
         const obstacleBoxes = [];
-        const MAX_ENEMIES = 2; // 限制 2 個機器人
+        const MAX_ENEMIES = 2;
 
-        // Jump Variables
-        let velocityY = 0;
-        let isGrounded = true;
-        const gravity = -0.012;
-        const jumpStrength = 0.25;
-
-        // --- UI ---
-        document.getElementById('settings-btn').onclick = () => document.getElementById('settings-menu').style.display = 'block';
-        document.getElementById('sens-slider').oninput = (e) => {
-            sensitivity = parseFloat(e.target.value);
-            document.getElementById('sens-val').innerText = sensitivity.toFixed(4);
-        };
-
-        // --- Three.js ---
+        // Three.js
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000105);
-        scene.fog = new THREE.Fog(0x000105, 5, 50);
+        scene.fog = new THREE.Fog(0x000105, 5, 45);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.rotation.order = 'YXZ';
         
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
         document.body.appendChild(renderer.domElement);
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.5));
@@ -153,11 +139,11 @@
         dirLight.position.set(10, 20, 10);
         scene.add(dirLight);
 
-        // Floor
+        // Floor Grid
         const grid = new THREE.GridHelper(100, 50, 0x00f2ff, 0x001111);
         scene.add(grid);
 
-        // --- Obstacles ---
+        // Create Obstacles
         function createObstacle(x, z, w, h, d) {
             const geo = new THREE.BoxGeometry(w, h, d);
             const mat = new THREE.MeshStandardMaterial({ color: 0x050505, emissive: 0x00f2ff, emissiveIntensity: 0.1 });
@@ -167,6 +153,8 @@
             const edges = new THREE.EdgesGeometry(geo);
             const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x00f2ff }));
             mesh.add(line);
+            
+            obstacles.push(mesh);
             obstacleBoxes.push(new THREE.Box3().setFromObject(mesh));
         }
         for(let i=0; i<15; i++) {
@@ -176,20 +164,17 @@
             createObstacle(rx, rz, 4, 8, 4);
         }
 
-        // --- Pistol ---
+        // Pistol
         const pistol = new THREE.Group();
-        const pMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-        const slide = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.32), pMat);
-        const grip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.08), pMat);
+        const slide = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.3), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+        const grip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.15, 0.08), new THREE.MeshStandardMaterial({ color: 0x111111 }));
         grip.position.set(0, -0.1, 0.1); grip.rotation.x = 0.2;
-        const pNeon = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.1, 0.25), new THREE.MeshBasicMaterial({color:0x00f2ff}));
-        pNeon.position.y = 0.02;
-        pistol.add(slide, grip, pNeon);
+        pistol.add(slide, grip);
         pistol.position.set(0.3, -0.3, -0.4);
         camera.add(pistol);
         scene.add(camera);
 
-        // --- Enemy ---
+        // Enemy System
         function createEnemy() {
             if (enemies.length >= MAX_ENEMIES) return;
             const group = new THREE.Group();
@@ -198,42 +183,43 @@
             const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), mat); head.position.y = 1.7;
             group.add(body, head);
             
+            let valid = false;
             let sx, sz;
-            do {
+            while(!valid) {
                 sx = (Math.random()-0.5)*50; sz = (Math.random()-0.5)*50;
-            } while (Math.abs(sx) < 10 && Math.abs(sz) < 10);
-            
+                const tempBox = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(sx, 1, sz), new THREE.Vector3(2,2,2));
+                valid = !obstacleBoxes.some(box => box.intersectsBox(tempBox)) && Math.abs(sx) > 8;
+            }
             group.position.set(sx, 0, sz);
             group.userData = { hp: 3, lastShot: 0 };
             scene.add(group);
             enemies.push(group);
         }
 
-        // --- Collision ---
-        function checkCollision(nextPos, radius) {
-            const playerBox = new THREE.Box3().setFromCenterAndSize(nextPos, new THREE.Vector3(radius, 1.8, radius));
-            return obstacleBoxes.some(box => box.intersectsBox(playerBox));
+        // Collision Check
+        function checkCollision(pos, radius) {
+            const box = new THREE.Box3().setFromCenterAndSize(pos, new THREE.Vector3(radius, 2, radius));
+            return obstacleBoxes.some(obs => obs.intersectsBox(box));
         }
 
-        // --- Combat ---
+        // Shoot Function
         function shoot() {
-            if (!gameActive || isReloading || ammo <= 0) {
-                if(ammo <= 0) reload();
-                return;
-            }
+            if (!gameActive || isReloading || ammo <= 0) { if(ammo<=0) reload(); return; }
             ammo--; document.getElementById('ammo-txt').innerText = ammo;
             recoilOffset += 0.06; pistol.position.z += 0.1;
 
             const ray = new THREE.Raycaster();
             ray.setFromCamera(new THREE.Vector2(0,0), camera);
-            const hits = ray.intersectObjects([...enemies, ...obstacleBoxes], true);
+            
+            // 重要：同時檢測敵軍與障礙物模型
+            const hits = ray.intersectObjects([...enemies, ...obstacles], true);
 
             if (hits.length > 0) {
-                let target = hits[0].object;
+                let hitObj = hits[0].object;
+                let target = hitObj;
                 while(target.parent && !target.userData.hp) target = target.parent;
                 
                 if(target.userData && target.userData.hp) {
-                    // 紅框特效
                     showHitEffect(target);
                     target.userData.hp--;
                     if(target.userData.hp <= 0) {
@@ -245,12 +231,12 @@
             }
         }
 
-        function showHitEffect(enemyGroup) {
-            enemyGroup.traverse(child => {
-                if(child.isMesh) {
-                    const wireframe = new THREE.BoxHelper(child, 0xff0000);
-                    scene.add(wireframe);
-                    setTimeout(() => scene.remove(wireframe), 150);
+        function showHitEffect(group) {
+            group.traverse(c => {
+                if(c.isMesh) {
+                    const helper = new THREE.BoxHelper(c, 0xff0000);
+                    scene.add(helper);
+                    setTimeout(() => scene.remove(helper), 100);
                 }
             });
         }
@@ -266,67 +252,68 @@
             }, 1500);
         }
 
-        // --- Loop ---
+        // Main Loop
         function animate(t) {
             requestAnimationFrame(animate);
             if (!gameActive || gameEnded) { renderer.render(scene, camera); return; }
 
             if (enemies.length < MAX_ENEMIES) createEnemy();
 
-            // 1. Jump & Gravity
-            velocityY += gravity;
+            // Gravity & Jump
+            velocityY -= 0.01;
             camera.position.y += velocityY;
+            if (camera.position.y <= 1.7) { camera.position.y = 1.7; velocityY = 0; isGrounded = true; }
 
-            if (camera.position.y <= 1.7) {
-                camera.position.y = 1.7;
-                velocityY = 0;
-                isGrounded = true;
-            }
-
-            // 2. Movement
+            // Movement
             const move = new THREE.Vector3();
             if(keys['KeyW']) move.z -= 1; if(keys['KeyS']) move.z += 1;
             if(keys['KeyA']) move.x -= 1; if(keys['KeyD']) move.x += 1;
             move.normalize();
 
             const nextPos = camera.position.clone();
-            const step = 0.13;
-            const angleY = yaw;
-            nextPos.x += (Math.sin(angleY)*move.z + Math.sin(angleY+Math.PI/2)*move.x) * step;
-            nextPos.z += (Math.cos(angleY)*move.z + Math.cos(angleY+Math.PI/2)*move.x) * step;
+            const step = 0.14;
+            nextPos.x += (Math.sin(yaw)*move.z + Math.sin(yaw+Math.PI/2)*move.x) * step;
+            nextPos.z += (Math.cos(yaw)*move.z + Math.cos(yaw+Math.PI/2)*move.x) * step;
 
             if (!checkCollision(nextPos, 0.7)) {
                 camera.position.x = nextPos.x;
                 camera.position.z = nextPos.z;
             }
 
-            // 3. Camera & Gun
+            // Recoil & Gun
             recoilOffset = THREE.MathUtils.lerp(recoilOffset, 0, 0.1);
             camera.rotation.set(pitch + recoilOffset, yaw, 0);
             pistol.position.z = THREE.MathUtils.lerp(pistol.position.z, -0.4, 0.1);
-            if(isReloading) pistol.rotation.x = THREE.MathUtils.lerp(pistol.rotation.x, -0.8, 0.1);
-            else pistol.rotation.x = THREE.MathUtils.lerp(pistol.rotation.x, 0, 0.1);
+            if(isReloading) pistol.rotation.x = -0.8; else pistol.rotation.x = 0;
 
-            // 4. AI
+            // AI Logic with Wall Collision Fix
             enemies.forEach(en => {
                 en.lookAt(camera.position.x, 0, camera.position.z);
                 const d = en.position.distanceTo(camera.position);
                 if(d > 8) {
+                    const prevPos = en.position.clone();
                     en.translateZ(0.07);
-                } else if(t - en.userData.lastShot > 1600) {
-                    takeDamage();
-                    en.userData.lastShot = t;
+                    // 機器人穿牆檢測
+                    if(checkCollision(en.position, 0.6)) en.position.copy(prevPos);
+                } else if(t - en.userData.lastShot > 1800) {
+                    // 視線檢查
+                    const ray = new THREE.Raycaster(en.position.clone().add(new THREE.Vector3(0,1,0)), camera.position.clone().sub(en.position).normalize());
+                    const visionHits = ray.intersectObjects(obstacles);
+                    if (visionHits.length === 0 || visionHits[0].distance > d) {
+                        hp -= 15;
+                        en.userData.lastShot = t;
+                        updateHP();
+                    }
                 }
             });
 
             renderer.render(scene, camera);
         }
 
-        function takeDamage() {
-            hp -= 15;
+        function updateHP() {
             document.getElementById('hp-txt').innerText = Math.max(0, hp);
             document.getElementById('hp-fill').style.width = (hp/150*100) + "%";
-            document.getElementById('damage-flash').style.background = 'rgba(255,0,0,0.3)';
+            document.getElementById('damage-flash').style.background = 'rgba(255,0,0,0.2)';
             setTimeout(() => document.getElementById('damage-flash').style.background = 'transparent', 100);
             if(hp <= 0) endGame();
         }
@@ -334,7 +321,7 @@
         async function endGame() {
             gameEnded = true; gameActive = false;
             document.exitPointerLock();
-            const name = prompt("SYSTEM FAILURE. UNIT ID:", "UNIT_" + Math.floor(Math.random()*999)) || "UNKNOWN";
+            const name = prompt("OFFLINE. ENTER ID:", "UNIT_" + Math.floor(Math.random()*999)) || "NA";
             try {
                 await addDoc(collection(db, "leaderboard"), { name, score, at: serverTimestamp() });
                 const snap = await getDocs(query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(5)));
@@ -342,19 +329,18 @@
                 list.innerHTML = "";
                 snap.forEach(d => list.innerHTML += `<li><span>${d.data().name}</span> <span>${d.data().score}</span></li>`);
                 document.getElementById('death-menu').style.display = 'block';
-                document.getElementById('hud').style.display = 'none';
             } catch (e) { console.error(e); }
         }
 
-        // --- Listeners ---
+        // Listeners
         document.getElementById('start-btn').onclick = () => document.body.requestPointerLock();
+        document.getElementById('sens-slider').oninput = (e) => {
+            sensitivity = parseFloat(e.target.value);
+            document.getElementById('sens-val').innerText = sensitivity.toFixed(4);
+        };
         document.addEventListener('pointerlockchange', () => {
-            if (document.pointerLockElement === document.body) {
-                gameActive = true;
-                document.getElementById('main-menu').style.display = 'none';
-                document.getElementById('hud').style.display = 'block';
-                document.getElementById('ammo-hud').style.display = 'block';
-            } else gameActive = false;
+            gameActive = (document.pointerLockElement === document.body);
+            if(gameActive) document.getElementById('main-menu').style.display = 'none';
         });
         document.addEventListener('mousemove', (e) => {
             if (!gameActive) return;
@@ -366,10 +352,7 @@
         document.addEventListener('keydown', (e) => { 
             keys[e.code]=true; 
             if(e.code==='KeyR') reload();
-            if(e.code==='Space' && isGrounded) {
-                velocityY = jumpStrength;
-                isGrounded = false;
-            }
+            if(e.code==='Space' && isGrounded) { velocityY = 0.22; isGrounded = false; }
         });
         document.addEventListener('keyup', (e) => keys[e.code]=false);
         window.addEventListener('resize', () => {
