@@ -3,93 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D FPS 射擊遊戲 - D-GunGame</title>
+    <title>3D FPS - Roblox Style</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #000; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #000; }
         canvas { display: block; }
 
         /* 準心 */
         #crosshair {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.8);
+            top: 50%; left: 50%;
+            width: 24px; height: 24px;
+            border: 2px solid rgba(0, 255, 255, 0.7);
             border-radius: 50%;
             transform: translate(-50%, -50%);
             pointer-events: none;
             z-index: 10;
         }
-        #crosshair::before {
-            content: '';
-            position: absolute;
+        #crosshair::after {
+            content: ''; position: absolute;
             top: 50%; left: 50%;
             width: 4px; height: 4px;
-            background: red;
-            border-radius: 50%;
+            background: lime; border-radius: 50%;
             transform: translate(-50%, -50%);
         }
 
         /* UI 資訊欄 */
         #ui {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
-            font-size: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,1);
-            pointer-events: none;
-            z-index: 10;
+            top: 20px; left: 20px;
+            color: #00ffff; font-size: 22px;
+            text-shadow: 0 0 10px rgba(0,255,255,0.5);
+            pointer-events: none; z-index: 10;
         }
-        .stat-box { margin-bottom: 5px; background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 5px; }
+        .stat-box { background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 8px; border: 1px solid #00ffff; margin-bottom: 10px; }
 
         /* 排行榜面板 */
         #leaderboard-panel {
             position: absolute;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(20, 20, 20, 0.95);
-            color: white;
-            padding: 40px;
-            border-radius: 20px;
-            display: none;
-            text-align: center;
-            min-width: 350px;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            z-index: 100;
-            border: 1px solid #444;
+            background: rgba(10, 10, 20, 0.95);
+            color: white; padding: 40px;
+            border-radius: 20px; display: none;
+            text-align: center; min-width: 350px;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.3);
+            z-index: 100; border: 2px solid #00ffff;
         }
-        h2 { color: #ffcc00; margin-top: 0; }
+        h2 { color: #00ffff; margin-top: 0; letter-spacing: 2px; }
         #leaderboard-list { list-style: none; padding: 0; margin: 25px 0; font-size: 18px; }
         #leaderboard-list li { 
-            padding: 10px; 
-            border-bottom: 1px solid #333; 
-            display: flex; 
-            justify-content: space-between;
+            padding: 12px; border-bottom: 1px solid #333; 
+            display: flex; justify-content: space-between;
         }
-        #leaderboard-list li:last-child { border-bottom: none; }
         button {
-            padding: 12px 30px;
-            cursor: pointer;
-            font-size: 18px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            transition: 0.3s;
+            padding: 12px 35px; cursor: pointer; font-size: 18px;
+            background: #00ffff; color: #000; font-weight: bold;
+            border: none; border-radius: 5px; transition: 0.3s;
         }
-        button:hover { background: #ff5e4d; }
+        button:hover { background: #fff; box-shadow: 0 0 20px #00ffff; }
 
         #start-hint {
-            position: absolute;
-            bottom: 20%;
-            width: 100%;
-            text-align: center;
-            color: white;
-            font-size: 24px;
-            text-shadow: 2px 2px 4px #000;
+            position: absolute; bottom: 15%; width: 100%;
+            text-align: center; color: #00ffff; font-size: 28px;
+            text-shadow: 0 0 15px #00ffff; font-weight: bold;
         }
     </style>
 </head>
@@ -97,21 +73,19 @@
 
     <div id="crosshair"></div>
     <div id="ui">
-        <div class="stat-box">分數：<span id="score">0</span></div>
-        <div class="stat-box">時間：<span id="timer">30</span>s</div>
+        <div class="stat-box">得分：<span id="score">0</span></div>
+        <div class="stat-box">剩餘時間：<span id="timer">30</span>s</div>
     </div>
 
-    <div id="start-hint">點擊畫面開始遊戲</div>
+    <div id="start-hint">點擊畫面開始狩獵</div>
 
     <div id="leaderboard-panel">
-        <h2>🏆 戰績排行榜</h2>
-        <ul id="leaderboard-list">
-            <!-- 這裡會由 JS 填入 -->
-        </ul>
-        <button onclick="location.reload()">再玩一次</button>
+        <h2>MISSION COMPLETE</h2>
+        <p>全球英雄榜</p>
+        <ul id="leaderboard-list"></ul>
+        <button onclick="location.reload()">重新挑戰</button>
     </div>
 
-    <!-- 模組化引入 Three.js 與 Firebase -->
     <script type="importmap">
         {
             "imports": {
@@ -127,7 +101,7 @@
         import { initializeApp } from "firebase/app";
         import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, serverTimestamp } from "firebase/firestore";
 
-        // --- 1. Firebase 初始化 (使用你提供的設定) ---
+        // --- Firebase 設定 ---
         const firebaseConfig = {
           apiKey: "AIzaSyBufMLTIXLeBjj_kNTPKEKyKCU29Zb4iD8",
           authDomain: "d-gungame.firebaseapp.com",
@@ -137,48 +111,126 @@
           appId: "1:799621642625:web:16b00ab30d466f4c2fd080",
           measurementId: "G-RXHQCJNNVX"
         };
-
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- 2. 遊戲核心變數 ---
-        let score = 0;
-        let timeLeft = 30;
-        let gameStarted = false;
-        let gameEnded = false;
-        let enemy = null;
-
-        // Three.js 場景設定
+        // --- 遊戲邏輯變數 ---
+        let score = 0, timeLeft = 30, gameActive = false, gameEnded = false;
+        const keys = {};
+        
+        // --- Three.js 初始化 ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x202020);
-        scene.fog = new THREE.Fog(0x202020, 0, 50);
+        // 漸層天空效果
+        scene.background = new THREE.Color(0x020205);
+        scene.fog = new THREE.Fog(0x020205, 1, 60);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.rotation.order = 'YXZ';
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // 燈光
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        scene.add(ambientLight);
-        const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        sunLight.position.set(5, 10, 7.5);
-        scene.add(sunLight);
+        // 光源
+        const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambient);
+        const pointLight = new THREE.PointLight(0x00ffff, 1, 100);
+        pointLight.position.set(0, 10, 0);
+        scene.add(pointLight);
 
-        // 地板 (格子狀)
-        const gridHelper = new THREE.GridHelper(100, 50, 0x444444, 0x222222);
-        scene.add(gridHelper);
-        const floorGeo = new THREE.PlaneGeometry(100, 100);
-        const floorMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+        // 好看的地板：深色金屬網格
+        const floorGeo = new THREE.PlaneGeometry(200, 200);
+        const floorMat = new THREE.MeshPhongMaterial({ 
+            color: 0x111111, 
+            shininess: 100,
+            specular: 0x00ffff 
+        });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
+        
+        const grid = new THREE.GridHelper(200, 100, 0x00ffff, 0x222222);
+        scene.add(grid);
 
-        // --- 3. 操作控制 (Pointer Lock & Keyboard) ---
-        const keys = {};
-        document.addEventListener('keydown', (e) => keys[e.code] = true);
-        document.addEventListener('keyup', (e) => keys[e.code] = false);
+        // --- 仿 Roblox 小人 (Dummy) ---
+        let dummy = new THREE.Group();
+        let leftArm, rightArm, leftLeg, rightLeg;
+
+        function createDummy() {
+            const mat = new THREE.MeshPhongMaterial({ color: 0xff4444 });
+            const headGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+            const head = new THREE.Mesh(headGeo, mat);
+            head.position.y = 1.6;
+
+            const torsoGeo = new THREE.BoxGeometry(1, 1.2, 0.5);
+            const torso = new THREE.Mesh(torsoGeo, mat);
+            torso.position.y = 0.8;
+
+            const limbGeo = new THREE.BoxGeometry(0.4, 0.8, 0.4);
+            leftArm = new THREE.Mesh(limbGeo, mat);
+            leftArm.position.set(-0.7, 1.0, 0);
+            
+            rightArm = new THREE.Mesh(limbGeo, mat);
+            rightArm.position.set(0.7, 1.0, 0);
+
+            leftLeg = new THREE.Mesh(limbGeo, mat);
+            leftLeg.position.set(-0.3, 0.4, 0);
+
+            rightLeg = new THREE.Mesh(limbGeo, mat);
+            rightLeg.position.set(0.3, 0.4, 0);
+
+            dummy.add(head, torso, leftArm, rightArm, leftLeg, rightLeg);
+            scene.add(dummy);
+            resetDummyPosition();
+        }
+
+        function resetDummyPosition() {
+            dummy.position.set((Math.random() - 0.5) * 40, 0, (Math.random() - 0.5) * 40);
+            dummy.rotation.y = Math.random() * Math.PI * 2;
+        }
+
+        createDummy();
+
+        // --- 敵人移動 AI ---
+        let dummySpeed = 0.08;
+        let dummyDirection = new THREE.Vector3(0, 0, 1);
+        let lastTurnTime = 0;
+
+        function updateDummy(time) {
+            // 隨機轉向
+            if (time - lastTurnTime > 2000) {
+                dummy.rotation.y += (Math.random() - 0.5) * 2;
+                lastTurnTime = time;
+            }
+
+            // 移動
+            dummy.translateZ(dummySpeed);
+
+            // 邊界檢查
+            if (Math.abs(dummy.position.x) > 45 || Math.abs(dummy.position.z) > 45) {
+                dummy.rotation.y += Math.PI;
+            }
+
+            // 走路動畫 (擺動四肢)
+            const swing = Math.sin(time * 0.01) * 0.5;
+            leftArm.rotation.x = swing;
+            rightArm.rotation.x = -swing;
+            leftLeg.rotation.x = -swing;
+            rightLeg.rotation.x = swing;
+        }
+
+        // --- 射擊與控制 ---
+        const raycaster = new THREE.Raycaster();
+        
+        function shoot() {
+            if (!gameActive || gameEnded) return;
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(dummy.children);
+            if (intersects.length > 0) {
+                score++;
+                document.getElementById('score').innerText = score;
+                resetDummyPosition();
+            }
+        }
 
         document.addEventListener('mousedown', () => {
             if (gameEnded) return;
@@ -191,11 +243,11 @@
 
         document.addEventListener('pointerlockchange', () => {
             if (document.pointerLockElement === document.body) {
-                if (!gameStarted) {
-                    gameStarted = true;
-                    document.getElementById('start-hint').style.display = 'none';
-                    startTimer();
-                }
+                gameActive = true;
+                document.getElementById('start-hint').style.display = 'none';
+                if (timeLeft === 30) startTimer();
+            } else {
+                gameActive = false;
             }
         });
 
@@ -203,51 +255,17 @@
             if (document.pointerLockElement === document.body && !gameEnded) {
                 camera.rotation.y -= e.movementX * 0.002;
                 camera.rotation.x -= e.movementY * 0.002;
-                // 限制仰角避免翻轉
-                camera.rotation.x = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, camera.rotation.x));
+                camera.rotation.x = Math.max(-1.5, Math.min(1.5, camera.rotation.x));
             }
         });
 
-        // --- 4. 敵人與射擊判定 ---
-        function spawnEnemy() {
-            if (enemy) scene.remove(enemy);
-            const size = 1 + Math.random();
-            const geo = new THREE.BoxGeometry(size, size, size);
-            const mat = new THREE.MeshLambertMaterial({ color: 0xff0000, emissive: 0x330000 });
-            enemy = new THREE.Mesh(geo, mat);
-            
-            // 隨機在玩家前方一定範圍內生成
-            enemy.position.set(
-                (Math.random() - 0.5) * 40,
-                size / 2,
-                (Math.random() - 0.5) * 40
-            );
-            scene.add(enemy);
-        }
-        spawnEnemy();
+        document.addEventListener('keydown', (e) => keys[e.code] = true);
+        document.addEventListener('keyup', (e) => keys[e.code] = false);
 
-        const raycaster = new THREE.Raycaster();
-        function shoot() {
-            if (!gameStarted || gameEnded) return;
-
-            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-            const intersects = raycaster.intersectObject(enemy);
-
-            if (intersects.length > 0) {
-                score++;
-                document.getElementById('score').innerText = score;
-                // 擊中效果：立刻重生
-                spawnEnemy();
-            }
-        }
-
-        // --- 5. 遊戲流程與 Firebase 整合 ---
+        // --- 遊戲流程與 Firebase ---
         function startTimer() {
             const timerInterval = setInterval(() => {
-                if (gameEnded) {
-                    clearInterval(timerInterval);
-                    return;
-                }
+                if (!gameActive) return;
                 timeLeft--;
                 document.getElementById('timer').innerText = timeLeft;
                 if (timeLeft <= 0) {
@@ -260,58 +278,51 @@
         async function endGame() {
             gameEnded = true;
             document.exitPointerLock();
-            
-            const name = prompt(`遊戲結束！你的分數是 ${score}。\n請輸入你的大名：`, "匿名戰士");
-            const playerName = name || "匿名戰士";
+            const playerName = prompt("戰鬥結束！請輸入你的代號：", "無名獵人") || "無名獵人";
 
             try {
-                // 1. 上傳分數
                 await addDoc(collection(db, "leaderboard"), {
                     name: playerName,
                     score: score,
                     createdAt: serverTimestamp()
                 });
 
-                // 2. 抓取前五名
                 const q = query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(5));
-                const querySnapshot = await getDocs(q);
-                
+                const snap = await getDocs(q);
                 const listEl = document.getElementById('leaderboard-list');
                 listEl.innerHTML = "";
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    listEl.innerHTML += `<li><span>${data.name}</span> <span>${data.score} PTS</span></li>`;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    listEl.innerHTML += `<li><span>${d.name}</span> <span>${d.score} PTS</span></li>`;
                 });
-
                 document.getElementById('leaderboard-panel').style.display = 'block';
-            } catch (err) {
-                console.error("Firebase Error:", err);
-                alert("無法上傳成績，請確認 Firestore 權限已開啟 (Test Mode)。");
+            } catch (e) {
+                console.error(e);
+                alert("資料庫連線失敗，請檢查 Firestore 規則。");
             }
         }
 
-        // --- 6. 渲染與移動循環 ---
-        camera.rotation.order = 'YXZ'; 
-        camera.position.set(0, 1.7, 5); // 初始位置
+        // --- 主循環 ---
+        camera.position.set(0, 1.7, 10);
+        const playerSpeed = 0.15;
 
-        const velocity = 0.15;
-        function animate() {
+        function animate(time) {
             requestAnimationFrame(animate);
 
-            if (gameStarted && !gameEnded && document.pointerLockElement === document.body) {
-                // 處理前後左右移動 (相對於視角)
-                const direction = new THREE.Vector3();
-                if (keys['KeyW']) direction.z -= 1;
-                if (keys['KeyS']) direction.z += 1;
-                if (keys['KeyA']) direction.x -= 1;
-                if (keys['KeyD']) direction.x += 1;
+            if (gameActive && !gameEnded) {
+                // 玩家移動
+                const dir = new THREE.Vector3();
+                if (keys['KeyW']) dir.z -= 1;
+                if (keys['KeyS']) dir.z += 1;
+                if (keys['KeyA']) dir.x -= 1;
+                if (keys['KeyD']) dir.x += 1;
+                dir.normalize();
 
-                direction.normalize();
-                
-                // 根據相機 Y 軸旋轉計算移動方向
                 const yaw = camera.rotation.y;
-                camera.position.x += (Math.sin(yaw) * direction.z + Math.sin(yaw + Math.PI/2) * direction.x) * velocity;
-                camera.position.z += (Math.cos(yaw) * direction.z + Math.cos(yaw + Math.PI/2) * direction.x) * velocity;
+                camera.position.x += (Math.sin(yaw) * dir.z + Math.sin(yaw + Math.PI/2) * dir.x) * playerSpeed;
+                camera.position.z += (Math.cos(yaw) * dir.z + Math.cos(yaw + Math.PI/2) * dir.x) * playerSpeed;
+                
+                updateDummy(time);
             }
 
             renderer.render(scene, camera);
@@ -323,7 +334,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        animate();
+        animate(0);
     </script>
 </body>
 </html>
