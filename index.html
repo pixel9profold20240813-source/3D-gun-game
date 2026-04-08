@@ -3,53 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBERPUNK STRIKE - V2</title>
+    <title>CYBER STRIKE: FINAL PROTOCOL</title>
     <style>
-        :root { --neon-cyan: #00f2ff; --neon-magenta: #ff00ff; }
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #000; color: white; }
+        :root { --neon: #00f2ff; --danger: #ff00ff; }
+        body { margin: 0; overflow: hidden; font-family: 'Consolas', monospace; background: #000; color: white; }
         canvas { display: block; }
 
-        /* Crosshair */
+        /* HUD Elements */
         #crosshair {
             position: absolute; top: 50%; left: 50%;
-            width: 24px; height: 24px;
-            border: 1px solid var(--neon-cyan); border-radius: 50%;
+            width: 20px; height: 20px;
+            border: 1px solid var(--neon); border-radius: 50%;
             transform: translate(-50%, -50%); pointer-events: none; z-index: 10;
         }
-
-        /* HUD */
         #hud {
             position: absolute; bottom: 30px; left: 30px;
             pointer-events: none; display: none;
         }
-        .hud-label { font-size: 10px; color: var(--neon-cyan); letter-spacing: 2px; text-transform: uppercase; }
-        .hud-value { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
-        #hp-bar { width: 180px; height: 4px; border: 1px solid var(--neon-cyan); margin-top: 5px; position: relative; }
-        #hp-fill { width: 100%; height: 100%; background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); transition: width 0.3s; }
+        .hud-v { font-size: 24px; font-weight: bold; text-shadow: 0 0 10px var(--neon); }
+        .bar-bg { width: 200px; height: 4px; background: rgba(255,255,255,0.1); margin: 5px 0; }
+        #hp-fill { height: 100%; background: var(--neon); width: 100%; transition: 0.3s; }
 
         #ammo-hud { position: absolute; bottom: 30px; right: 40px; text-align: right; display: none; }
 
-        /* Panels */
+        /* Menus */
         .panel {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0, 5, 10, 0.98); border: 1px solid var(--neon-cyan);
-            padding: 40px; text-align: center; z-index: 100; min-width: 300px;
-            box-shadow: 0 0 40px rgba(0, 242, 255, 0.2);
+            background: rgba(0, 0, 0, 0.95); border: 1px solid var(--neon);
+            padding: 40px; text-align: center; z-index: 100; min-width: 320px;
+            box-shadow: 0 0 50px rgba(0, 242, 255, 0.1);
         }
         button {
-            background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
-            padding: 12px 40px; font-size: 14px; cursor: pointer; text-transform: uppercase;
-            transition: 0.3s; margin-top: 20px; letter-spacing: 2px;
+            background: none; border: 1px solid var(--neon); color: var(--neon);
+            padding: 15px 40px; font-size: 16px; cursor: pointer; text-transform: uppercase;
+            letter-spacing: 5px; transition: 0.3s;
         }
-        button:hover { background: var(--neon-cyan); color: black; box-shadow: 0 0 20px var(--neon-cyan); }
+        button:hover { background: var(--neon); color: #000; box-shadow: 0 0 20px var(--neon); }
 
-        #settings-btn { position: absolute; top: 20px; right: 20px; z-index: 110; border: 1px solid var(--neon-cyan); background: none; color: white; cursor: pointer; padding: 5px 10px; }
-        #settings-menu { display: none; }
-        
-        #damage-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 0, 0, 0); pointer-events: none; z-index: 5; }
-
-        #leaderboard { list-style: none; padding: 0; margin-top: 20px; text-align: left; }
-        #leaderboard li { padding: 8px 0; border-bottom: 1px solid #111; display: flex; justify-content: space-between; color: #888; }
+        #settings-btn { position: absolute; top: 20px; right: 20px; z-index: 110; background: none; border: 1px solid #333; color: #888; cursor: pointer; padding: 8px 15px; }
+        #damage-flash { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,0,0,0); pointer-events: none; z-index: 5; }
+        #leaderboard { list-style: none; padding: 0; text-align: left; border-top: 1px solid #333; margin-top: 20px; }
+        #leaderboard li { padding: 10px 0; border-bottom: 1px solid #111; display: flex; justify-content: space-between; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -59,37 +53,37 @@
     <button id="settings-btn">SETTINGS</button>
 
     <div id="hud">
-        <div class="hud-label">Combat Integrity</div>
-        <div class="hud-value"><span id="hp-txt">150</span> / 150</div>
-        <div id="hp-bar"><div id="hp-fill"></div></div>
-        <div class="hud-label" style="margin-top:15px">Kill Count</div>
-        <div class="hud-value" id="score-txt">0</div>
+        <div style="color:var(--neon); font-size:12px">CORE INTEGRITY</div>
+        <div class="hud-v"><span id="hp-txt">150</span> / 150</div>
+        <div class="bar-bg"><div id="hp-fill"></div></div>
+        <div style="color:var(--neon); font-size:12px; margin-top:15px">DATA FRAGS</div>
+        <div class="hud-v" id="score-txt">0</div>
     </div>
 
     <div id="ammo-hud">
-        <div class="hud-label">Energy Cell</div>
-        <div class="hud-value"><span id="ammo-txt">5</span> / 5</div>
-        <div id="reload-txt" style="color:var(--neon-magenta); visibility:hidden; font-size: 12px;">RELOADING...</div>
+        <div style="color:var(--neon); font-size:12px">ENERGY</div>
+        <div class="hud-v"><span id="ammo-txt">5</span> / 5</div>
+        <div id="reload-txt" style="color:var(--danger); font-size:12px; visibility:hidden;">RELOADING...</div>
     </div>
 
-    <div id="start-menu" class="panel">
-        <h1 style="letter-spacing: 10px; color: var(--neon-cyan);">CYBER STRIKE</h1>
-        <button id="start-btn">Connect Interface</button>
+    <div id="main-menu" class="panel">
+        <h1 style="color:var(--neon); letter-spacing:10px;">CYBER STRIKE</h1>
+        <button id="start-btn">INITIALIZE</button>
     </div>
 
-    <div id="settings-menu" class="panel">
-        <h3 style="color:var(--neon-cyan)">CALIBRATION</h3>
+    <div id="settings-menu" class="panel" style="display:none">
+        <h3 style="color:var(--neon)">CALIBRATION</h3>
         <div style="text-align:left">
             <label>Sensitivity: <span id="sens-val">0.0020</span></label><br>
-            <input type="range" id="sens-slider" min="0.0005" max="0.006" step="0.0001" value="0.002" style="width:100%">
+            <input type="range" id="sens-slider" min="0.0005" max="0.008" step="0.0001" value="0.002" style="width:100%">
         </div>
-        <button onclick="document.getElementById('settings-menu').style.display='none'">Save</button>
+        <button onclick="document.getElementById('settings-menu').style.display='none'">Apply</button>
     </div>
 
     <div id="death-menu" class="panel" style="display:none">
-        <h2 style="color:var(--neon-magenta)">SYSTEM OFFLINE</h2>
+        <h2 style="color:var(--danger)">LINK SEVERED</h2>
         <ul id="leaderboard"></ul>
-        <button onclick="location.reload()">Re-Link</button>
+        <button onclick="location.reload()">RE-LINK</button>
     </div>
 
     <script type="importmap">
@@ -107,7 +101,7 @@
         import { initializeApp } from "firebase/app";
         import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, serverTimestamp } from "firebase/firestore";
 
-        // --- Firebase Config ---
+        // --- Firebase ---
         const firebaseConfig = {
             apiKey: "AIzaSyBufMLTIXLeBjj_kNTPKEKyKCU29Zb4iD8",
             authDomain: "d-gungame.firebaseapp.com",
@@ -126,6 +120,7 @@
         const keys = {};
         const enemies = [];
         const obstacles = [];
+        const obstacleBoxes = [];
         const MAX_ENEMIES = 3;
 
         // --- Settings ---
@@ -135,12 +130,12 @@
             document.getElementById('sens-val').innerText = sensitivity.toFixed(4);
         };
 
-        // --- Scene & Camera ---
+        // --- Three.js Setup ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000205);
-        scene.fog = new THREE.Fog(0x000205, 2, 45);
+        scene.background = new THREE.Color(0x000105);
+        scene.fog = new THREE.Fog(0x000105, 5, 50);
 
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.rotation.order = 'YXZ';
         
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -148,122 +143,105 @@
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         document.body.appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-        const sun = new THREE.DirectionalLight(0x00f2ff, 1.0);
-        sun.position.set(10, 20, 10);
-        scene.add(sun);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        const dirLight = new THREE.DirectionalLight(0x00f2ff, 1.0);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
 
-        // Grid & Floor
-        const grid = new THREE.GridHelper(100, 50, 0x00f2ff, 0x001a1a);
+        // Floor (Dark but distinct)
+        const grid = new THREE.GridHelper(200, 100, 0x00f2ff, 0x001111);
         scene.add(grid);
 
-        // --- Create Obstacles ---
+        // --- Obstacles System ---
         function createObstacle(x, z, w, h, d) {
             const geo = new THREE.BoxGeometry(w, h, d);
-            const mat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.1 });
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: 0x050505, 
+                emissive: 0x00f2ff, 
+                emissiveIntensity: 0.1 
+            });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(x, h/2, z);
             scene.add(mesh);
             
-            // Neon Edge for Obstacle
+            // Neon Edges (Make them very obvious)
             const edges = new THREE.EdgesGeometry(geo);
             const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x00f2ff }));
             mesh.add(line);
             
             obstacles.push(mesh);
+            obstacleBoxes.push(new THREE.Box3().setFromObject(mesh));
         }
 
-        // Add some random tech-monoliths
-        for(let i=0; i<15; i++) {
-            const rx = (Math.random()-0.5)*60;
-            const rz = (Math.random()-0.5)*60;
-            if (Math.abs(rx) < 5 && Math.abs(rz) < 5) continue; // Don't spawn on start
-            createObstacle(rx, rz, 2+Math.random()*3, 4+Math.random()*6, 2+Math.random()*3);
+        // Spawn pillars
+        for(let i=0; i<18; i++) {
+            const rx = (Math.random()-0.5)*70;
+            const rz = (Math.random()-0.5)*70;
+            if (Math.abs(rx) < 6 && Math.abs(rz) < 6) continue; // Safe zone
+            createObstacle(rx, rz, 3, 6, 3);
         }
 
-        // --- Sci-Fi Pistol Model ---
+        // --- Pistol Model ---
         const pistol = new THREE.Group();
         const pMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-        const pNeon = new THREE.MeshBasicMaterial({ color: 0x00f2ff });
-
         const slide = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.3), pMat);
-        const frame = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.25), pMat);
-        frame.position.set(0, -0.04, 0.02);
         const grip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.15, 0.08), pMat);
-        grip.position.set(0, -0.12, 0.12);
-        grip.rotation.x = 0.3;
-        const laser = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.1), pNeon);
-        laser.rotation.x = Math.PI/2;
-        laser.position.set(0, -0.05, -0.1);
-        
-        pistol.add(slide, frame, grip, laser);
-        pistol.position.set(0.25, -0.25, -0.4);
+        grip.position.set(0, -0.1, 0.1); grip.rotation.x = 0.2;
+        const pNeon = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.09, 0.2), new THREE.MeshBasicMaterial({color:0x00f2ff}));
+        pNeon.position.y = 0.02;
+        pistol.add(slide, grip, pNeon);
+        pistol.position.set(0.3, -0.3, -0.4);
         camera.add(pistol);
         scene.add(camera);
 
-        // --- Enemy Logic ---
+        // --- Enemy System ---
         function createEnemy() {
             if (enemies.length >= MAX_ENEMIES) return;
             const group = new THREE.Group();
-            const whiteMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee });
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 0.4), whiteMat);
-            body.position.y = 0.9;
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), whiteMat);
-            head.position.y = 1.7;
+            const mat = new THREE.MeshStandardMaterial({ color: 0xffffff }); // WHITE ROBOT
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 0.4), mat); body.position.y = 0.9;
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), mat); head.position.y = 1.7;
             const eye = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.05, 0.1), new THREE.MeshBasicMaterial({color:0xff00ff}));
             eye.position.set(0, 1.75, 0.2);
             group.add(body, head, eye);
             
-            let spawned = false;
-            while(!spawned) {
-                const a = Math.random()*Math.PI*2;
-                const d = 15+Math.random()*10;
-                group.position.set(Math.cos(a)*d, 0, Math.sin(a)*d);
-                // Simple check if spawn inside obstacle
-                spawned = true; 
+            // Safe Spawning logic
+            let validSpawn = false;
+            let sx, sz;
+            while(!validSpawn) {
+                sx = (Math.random()-0.5)*60; sz = (Math.random()-0.5)*60;
+                const tempBox = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(sx, 1, sz), new THREE.Vector3(2, 2, 2));
+                validSpawn = !obstacleBoxes.some(box => box.intersectsBox(tempBox)) && Math.abs(sx) > 8;
             }
-            group.userData = { hp: 2, lastShot: tGlobal };
+            group.position.set(sx, 0, sz);
+            group.userData = { hp: 2, lastShot: 0 };
             scene.add(group);
             enemies.push(group);
         }
 
-        // --- Collision Check ---
-        function checkCollision(objPos, radius) {
-            for(let obs of obstacles) {
-                const box = new THREE.Box3().setFromObject(obs);
-                const sphere = new THREE.Sphere(objPos, radius);
-                if (box.intersectsSphere(sphere)) return true;
-            }
-            return false;
+        // --- Collision Logic ---
+        function checkCollision(nextPos, radius) {
+            const playerBox = new THREE.Box3().setFromCenterAndSize(nextPos, new THREE.Vector3(radius, 2, radius));
+            return obstacleBoxes.some(box => box.intersectsBox(playerBox));
         }
 
         // --- Combat ---
         function shoot() {
             if (!gameActive || isReloading || ammo <= 0) return;
-            ammo--;
-            document.getElementById('ammo-txt').innerText = ammo;
-            recoilOffset += 0.07;
-            pistol.position.z += 0.1;
-
+            ammo--; document.getElementById('ammo-txt').innerText = ammo;
+            recoilOffset += 0.08; pistol.position.z += 0.12;
             const ray = new THREE.Raycaster();
             ray.setFromCamera(new THREE.Vector2(0,0), camera);
-            
-            // Raycast includes enemies AND obstacles
             const hits = ray.intersectObjects([...enemies, ...obstacles], true);
-
             if (hits.length > 0) {
-                let firstHit = hits[0].object;
-                // Find enemy group if any
-                let target = firstHit;
+                let target = hits[0].object;
                 while(target.parent && !target.userData.hp) target = target.parent;
-                
                 if(target.userData && target.userData.hp) {
                     target.userData.hp--;
                     if(target.userData.hp <= 0) {
                         scene.remove(target);
                         enemies.splice(enemies.indexOf(target), 1);
-                        score++;
-                        document.getElementById('score-txt').innerText = score;
+                        score++; document.getElementById('score-txt').innerText = score;
                     }
                 }
             }
@@ -281,54 +259,54 @@
             }, 1500);
         }
 
-        // --- Game Loop ---
-        let tGlobal = 0;
+        // --- Main Loop ---
         function animate(t) {
-            tGlobal = t;
             requestAnimationFrame(animate);
-            if (!gameActive || gameEnded) {
-                renderer.render(scene, camera);
-                return;
-            }
+            if (!gameActive || gameEnded) { renderer.render(scene, camera); return; }
 
             if (enemies.length < MAX_ENEMIES) createEnemy();
 
-            // 1. Player Movement with Collision
+            // 1. Movement & Ground Lock
             const move = new THREE.Vector3();
             if(keys['KeyW']) move.z -= 1; if(keys['KeyS']) move.z += 1;
             if(keys['KeyA']) move.x -= 1; if(keys['KeyD']) move.x += 1;
             move.normalize();
 
             const nextPos = camera.position.clone();
-            const step = 0.12;
+            const step = 0.13;
             nextPos.x += (Math.sin(yaw)*move.z + Math.sin(yaw+Math.PI/2)*move.x) * step;
             nextPos.z += (Math.cos(yaw)*move.z + Math.cos(yaw+Math.PI/2)*move.x) * step;
+            nextPos.y = 1.7; // FORCE GROUND HEIGHT
 
-            if (!checkCollision(nextPos, 0.5)) {
+            if (!checkCollision(nextPos, 0.6)) {
                 camera.position.copy(nextPos);
             }
 
-            // 2. Camera & Gun Lerp
+            // 2. Camera Recoil & Smooth Return
             recoilOffset = THREE.MathUtils.lerp(recoilOffset, 0, 0.1);
             camera.rotation.set(pitch + recoilOffset, yaw, 0);
+            
+            // 3. Pistol Anim
             pistol.position.z = THREE.MathUtils.lerp(pistol.position.z, -0.4, 0.1);
             if(isReloading) pistol.rotation.x = THREE.MathUtils.lerp(pistol.rotation.x, -1, 0.1);
             else pistol.rotation.x = THREE.MathUtils.lerp(pistol.rotation.x, 0, 0.1);
 
-            // 3. Enemy AI with Collision
+            // 4. Robot AI with Wall Check
             enemies.forEach(en => {
                 en.lookAt(camera.position.x, 0, camera.position.z);
                 const d = en.position.distanceTo(camera.position);
-                if(d > 8) {
+                if(d > 9) {
                     const prevPos = en.position.clone();
-                    en.translateZ(0.06);
-                    if (checkCollision(en.position, 0.6)) {
+                    en.translateZ(0.07);
+                    // Check robot wall collision
+                    const enBox = new THREE.Box3().setFromCenterAndSize(en.position, new THREE.Vector3(0.8, 2, 0.8));
+                    if (obstacleBoxes.some(box => box.intersectsBox(enBox))) {
                         en.position.copy(prevPos); // Stop at wall
                     }
-                } else if(t - en.userData.lastShot > 1800) {
-                    // Attack if line of sight is clear
+                } else if(t - en.userData.lastShot > 1600) {
+                    // Vision check: Can robot see player through walls?
                     const ray = new THREE.Raycaster(en.position.clone().add(new THREE.Vector3(0,1.5,0)), camera.position.clone().sub(en.position).normalize());
-                    const visionHits = ray.intersectObjects([...obstacles]);
+                    const visionHits = ray.intersectObjects(obstacles);
                     if (visionHits.length === 0 || visionHits[0].distance > d) {
                         takeDamage();
                         en.userData.lastShot = t;
@@ -342,7 +320,7 @@
         function takeDamage() {
             hp -= 15;
             document.getElementById('hp-txt').innerText = Math.max(0, hp);
-            document.getElementById('hp-fill').style.width = (hp / 150 * 100) + "%";
+            document.getElementById('hp-fill').style.width = (hp/150*100) + "%";
             document.getElementById('damage-flash').style.background = 'rgba(255,0,0,0.2)';
             setTimeout(() => document.getElementById('damage-flash').style.background = 'transparent', 100);
             if(hp <= 0) endGame();
@@ -351,7 +329,7 @@
         async function endGame() {
             gameEnded = true; gameActive = false;
             document.exitPointerLock();
-            const name = prompt("NEURAL LINK SEVERED. ID:", "GHOST_" + Math.floor(Math.random()*999)) || "UNKNOWN";
+            const name = prompt("DATA CORRUPTION DETECTED. UNIT ID:", "UNIT_" + Math.floor(Math.random()*999)) || "UNKNOWN";
             try {
                 await addDoc(collection(db, "leaderboard"), { name, score, at: serverTimestamp() });
                 const snap = await getDocs(query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(5)));
@@ -359,6 +337,7 @@
                 list.innerHTML = "";
                 snap.forEach(d => list.innerHTML += `<li><span>${d.data().name}</span> <span>${d.data().score}</span></li>`);
                 document.getElementById('death-menu').style.display = 'block';
+                document.getElementById('hud').style.display = 'none';
             } catch (e) { console.error(e); }
         }
 
@@ -367,7 +346,7 @@
         document.addEventListener('pointerlockchange', () => {
             if (document.pointerLockElement === document.body) {
                 gameActive = true;
-                document.getElementById('start-menu').style.display = 'none';
+                document.getElementById('main-menu').style.display = 'none';
                 document.getElementById('hud').style.display = 'block';
                 document.getElementById('ammo-hud').style.display = 'block';
             } else gameActive = false;
