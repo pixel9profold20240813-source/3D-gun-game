@@ -3,80 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D FPS - Pro Edition</title>
+    <title>3D FPS - Combat Edition</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, sans-serif; background: #87CEEB; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #87CEEB; }
         canvas { display: block; }
 
         /* 準心 */
         #crosshair {
             position: absolute; top: 50%; left: 50%;
             width: 20px; height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.9);
-            border-radius: 50%; transform: translate(-50%, -50%);
-            pointer-events: none; z-index: 10;
+            border: 2px solid white; border-radius: 50%;
+            transform: translate(-50%, -50%); pointer-events: none; z-index: 10;
         }
 
         /* 遊戲 UI */
         #game-ui {
             position: absolute; top: 20px; left: 20px;
-            color: white; font-size: 24px; font-weight: bold;
-            text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            color: white; font-size: 20px; font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
             pointer-events: none; display: none;
         }
+        #health-bar-container {
+            width: 200px; height: 20px; background: rgba(0,0,0,0.5);
+            border: 2px solid white; margin-top: 10px; border-radius: 10px; overflow: hidden;
+        }
+        #health-bar-fill { width: 100%; height: 100%; background: #ff4444; transition: width 0.2s; }
+
         #ammo-ui {
             position: absolute; bottom: 30px; right: 40px;
             color: #ffcc00; font-size: 40px; font-weight: bold;
-            text-shadow: 2px 2px 10px rgba(0,0,0,0.8);
-            display: none;
-        }
-        #reload-hint {
-            position: absolute; top: 60%; left: 50%;
-            transform: translate(-50%, -50%);
-            color: #ff4444; font-size: 30px; font-weight: bold;
-            display: none; text-shadow: 0 0 10px black;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.8); display: none;
         }
 
-        /* 設定與啟動面板 */
+        #damage-flash {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 0, 0, 0); pointer-events: none; z-index: 5;
+            transition: background 0.1s;
+        }
+
+        /* 設定面板 */
         #menu-panel, #leaderboard-panel {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             background: rgba(255, 255, 255, 0.95);
             padding: 30px; border-radius: 20px;
             text-align: center; width: 320px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 100;
         }
         .setting-item { margin: 15px 0; text-align: left; }
-        .setting-item label { display: block; font-size: 14px; color: #555; }
         input[type="range"] { width: 100%; }
-
         button {
             width: 100%; padding: 15px; margin-top: 10px;
-            background: #4CAF50; color: white; border: none;
+            background: #2196F3; color: white; border: none;
             border-radius: 10px; font-size: 18px; cursor: pointer;
         }
-        button:hover { background: #45a049; }
-
         #leaderboard-list { list-style: none; padding: 0; text-align: left; }
-        #leaderboard-list li { padding: 10px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
+        #leaderboard-list li { padding: 8px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
+        
+        #reload-hint {
+            position: absolute; top: 65%; left: 50%; transform: translate(-50%, -50%);
+            color: #ff4444; font-size: 24px; font-weight: bold; display: none;
+        }
     </style>
 </head>
 <body>
 
+    <div id="damage-flash"></div>
     <div id="crosshair"></div>
-    
-    <!-- 遊戲中 UI -->
-    <div id="game-ui">
-        <div>分數: <span id="score">0</span></div>
-        <div>剩餘時間: <span id="timer">30</span>s</div>
-    </div>
-    <div id="ammo-ui">AMMO: <span id="ammo-val">5</span>/5</div>
     <div id="reload-hint">RELOADING...</div>
+    
+    <div id="game-ui">
+        <div>擊殺數: <span id="score">0</span></div>
+        <div>時間: <span id="timer">30</span>s</div>
+        <div>生命值: <span id="hp-text">150</span> / 150</div>
+        <div id="health-bar-container"><div id="health-bar-fill"></div></div>
+    </div>
 
-    <!-- 初始選單 -->
+    <div id="ammo-ui">AMMO: <span id="ammo-val">5</span>/5</div>
+
     <div id="menu-panel">
-        <h2 style="margin-top:0">遊戲設定</h2>
+        <h2 style="margin-top:0">生存射擊設定</h2>
         <div class="setting-item">
             <label>滑鼠靈敏度: <span id="sens-val">0.002</span></label>
             <input type="range" id="sens-slider" min="0.0005" max="0.01" step="0.0005" value="0.002">
@@ -85,13 +91,11 @@
             <label>遊戲時限: <span id="time-val">30</span> 秒</label>
             <input type="range" id="time-slider" min="10" max="120" step="10" value="30">
         </div>
-        <button id="start-btn">進入並開始遊戲</button>
-        <p style="font-size:12px; color:#888;">操作: WASD 移動 / 左鍵射擊 / R 換彈</p>
+        <button id="start-btn">開始戰鬥</button>
     </div>
 
-    <!-- 排行榜 -->
     <div id="leaderboard-panel" style="display:none">
-        <h2 style="color:#4CAF50">🏆 遊戲結束</h2>
+        <h2 id="end-title">遊戲結束</h2>
         <ul id="leaderboard-list"></ul>
         <button onclick="location.reload()">再玩一次</button>
     </div>
@@ -111,160 +115,177 @@
         import { initializeApp } from "firebase/app";
         import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, serverTimestamp } from "firebase/firestore";
 
-        // --- Firebase 設定 ---
+        // --- Firebase ---
         const firebaseConfig = {
           apiKey: "AIzaSyBufMLTIXLeBjj_kNTPKEKyKCU29Zb4iD8",
           authDomain: "d-gungame.firebaseapp.com",
           projectId: "d-gungame",
           storageBucket: "d-gungame.firebasestorage.app",
           messagingSenderId: "799621642625",
-          appId: "1:799621642625:web:16b00ab30d466f4c2fd080",
-          measurementId: "G-RXHQCJNNVX"
+          appId: "1:799621642625:web:16b00ab30d466f4c2fd080"
         };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
         // --- 核心變數 ---
-        let score = 0, ammo = 5, isReloading = false;
+        let score = 0, ammo = 5, playerHP = 150, isReloading = false;
         let gameTime = 30, sensitivity = 0.002;
         let gameActive = false, gameEnded = false;
+        let recoilTarget = 0, recoilCurrent = 0;
         const keys = {};
 
-        // --- UI 交互 ---
+        // --- 選單控制 ---
         const sensSlider = document.getElementById('sens-slider');
         const timeSlider = document.getElementById('time-slider');
         sensSlider.oninput = () => { sensitivity = parseFloat(sensSlider.value); document.getElementById('sens-val').innerText = sensitivity; };
         timeSlider.oninput = () => { gameTime = parseInt(timeSlider.value); document.getElementById('time-val').innerText = gameTime; };
+        document.getElementById('start-btn').onclick = () => document.body.requestPointerLock();
 
-        document.getElementById('start-btn').onclick = () => {
-            document.body.requestPointerLock();
-        };
-
-        // --- Three.js 初始化 ---
+        // --- Three.js 場景 ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB); // 天藍色
-        scene.fog = new THREE.Fog(0x87CEEB, 20, 100);
-
+        scene.background = new THREE.Color(0x87CEEB);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.rotation.order = 'YXZ';
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // 光源
         scene.add(new THREE.AmbientLight(0xffffff, 0.8));
         const sun = new THREE.DirectionalLight(0xffffff, 0.5);
         sun.position.set(10, 20, 10);
         scene.add(sun);
 
-        // 好看的彩色地板
-        const floorGeo = new THREE.PlaneGeometry(200, 200);
-        const floorMat = new THREE.MeshLambertMaterial({ color: 0x99ff66 });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
+        // 地板
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshLambertMaterial({ color: 0x7cfc00 }));
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
-        
-        const grid = new THREE.GridHelper(200, 40, 0x000000, 0xdddddd);
-        grid.position.y = 0.01;
-        scene.add(grid);
+        scene.add(new THREE.GridHelper(200, 50, 0x000000, 0x55aa55));
 
-        // --- Roblox 小人 (可變色) ---
+        // --- 機器人 (AI) ---
         let dummy = new THREE.Group();
         const dummyMaterials = [];
-
-        function createDummy() {
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), createMat());
-            head.position.y = 1.6;
-            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.5), createMat());
-            torso.position.y = 0.8;
-            const lArm = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.9, 0.4), createMat());
-            lArm.position.set(-0.7, 0.9, 0);
-            const rArm = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.9, 0.4), createMat());
-            rArm.position.set(0.7, 0.9, 0);
-            const lLeg = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.4), createMat());
-            lLeg.position.set(-0.25, 0.4, 0);
-            const rLeg = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.4), createMat());
-            rLeg.position.set(0.25, 0.4, 0);
-
-            dummy.add(head, torso, lArm, rArm, lLeg, rLeg);
+        function buildDummy() {
+            const parts = [
+                { g: [0.6,0.6,0.6], p: [0,1.6,0] }, { g: [0.9,1.1,0.5], p: [0,0.8,0] },
+                { g: [0.4,0.9,0.4], p: [-0.7,0.9,0] }, { g: [0.4,0.9,0.4], p: [0.7,0.9,0] },
+                { g: [0.4,0.8,0.4], p: [-0.25,0.4,0] }, { g: [0.4,0.8,0.4], p: [0.25,0.4,0] }
+            ];
+            parts.forEach(part => {
+                const m = new THREE.MeshLambertMaterial({ color: 0xff0000 });
+                const mesh = new THREE.Mesh(new THREE.BoxGeometry(...part.g), m);
+                mesh.position.set(...part.p);
+                dummy.add(mesh);
+                dummyMaterials.push(m);
+            });
             scene.add(dummy);
-            randomizeDummy();
+            respawnDummy();
         }
-
-        function createMat() {
-            const m = new THREE.MeshLambertMaterial({ color: 0xffffff });
-            dummyMaterials.push(m);
-            return m;
+        function respawnDummy() {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 15 + Math.random() * 10;
+            dummy.position.set(Math.cos(angle)*dist, 0, Math.sin(angle)*dist);
+            const color = new THREE.Color().setHSL(Math.random(), 0.8, 0.5);
+            dummyMaterials.forEach(m => m.color.copy(color));
         }
+        buildDummy();
 
-        function randomizeDummy() {
-            const newColor = new THREE.Color().setHSL(Math.random(), 0.8, 0.5);
-            dummyMaterials.forEach(m => m.color.copy(newColor));
-            dummy.position.set((Math.random()-0.5)*40, 0, (Math.random()-0.5)*40);
-        }
-        createDummy();
-
-        // --- 槍械與彈藥邏輯 ---
+        // --- 戰鬥系統 ---
         function shoot() {
             if (!gameActive || gameEnded || isReloading) return;
-
-            if (ammo <= 0) {
-                reload();
-                return;
-            }
+            if (ammo <= 0) { reload(); return; }
 
             ammo--;
-            updateAmmoUI();
-
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-            const hits = raycaster.intersectObjects(dummy.children);
+            updateUI();
             
-            if (hits.length > 0) {
-                score++;
-                document.getElementById('score').innerText = score;
-                randomizeDummy();
-            }
+            // 施加後座力 (向上踢)
+            recoilTarget += 0.04;
 
-            if (ammo === 0) setTimeout(reload, 300);
+            const ray = new THREE.Raycaster();
+            ray.setFromCamera(new THREE.Vector2(0, 0), camera);
+            if (ray.intersectObjects(dummy.children).length > 0) {
+                score++;
+                respawnDummy();
+            }
+            if (ammo === 0) setTimeout(reload, 200);
         }
 
         function reload() {
             if (isReloading || ammo === 5) return;
             isReloading = true;
             document.getElementById('reload-hint').style.display = 'block';
-            
             setTimeout(() => {
-                ammo = 5;
-                isReloading = false;
-                updateAmmoUI();
+                ammo = 5; isReloading = false;
                 document.getElementById('reload-hint').style.display = 'none';
+                updateUI();
             }, 1500);
         }
 
-        function updateAmmoUI() {
-            document.getElementById('ammo-val').innerText = ammo;
+        function takeDamage(amt) {
+            playerHP -= amt;
+            document.getElementById('damage-flash').style.background = 'rgba(255,0,0,0.3)';
+            setTimeout(() => document.getElementById('damage-flash').style.background = 'rgba(255,0,0,0)', 100);
+            updateUI();
+            if (playerHP <= 0) endGame("你戰死了！");
         }
 
-        // --- 輸入監聽 ---
+        function updateUI() {
+            document.getElementById('score').innerText = score;
+            document.getElementById('ammo-val').innerText = ammo;
+            document.getElementById('hp-text').innerText = Math.max(0, playerHP);
+            document.getElementById('health-bar-fill').style.width = (playerHP / 150 * 100) + "%";
+        }
+
+        // --- 核心迴圈與 AI ---
+        let lastAttackTime = 0;
+        camera.position.set(0, 1.7, 5);
+
+        function animate(t) {
+            requestAnimationFrame(animate);
+            if (gameActive && !gameEnded) {
+                // 1. 移動邏輯
+                const dir = new THREE.Vector3();
+                if (keys['KeyW']) dir.z -= 1; if (keys['KeyS']) dir.z += 1;
+                if (keys['KeyA']) dir.x -= 1; if (keys['KeyD']) dir.x += 1;
+                dir.normalize();
+                const yaw = camera.rotation.y;
+                camera.position.x += (Math.sin(yaw) * dir.z + Math.sin(yaw + Math.PI/2) * dir.x) * 0.12;
+                camera.position.z += (Math.cos(yaw) * dir.z + Math.cos(yaw + Math.PI/2) * dir.x) * 0.12;
+
+                // 2. 後座力平滑回彈
+                camera.rotation.x += recoilTarget;
+                recoilTarget *= 0.5; // 瞬間衰減
+                camera.rotation.x = THREE.MathUtils.lerp(camera.rotation.x, camera.rotation.x - 0.05, 0.1); // 嘗試拉回
+
+                // 3. AI 機器人行為
+                dummy.lookAt(camera.position.x, 0, camera.position.z);
+                const dist = dummy.position.distanceTo(camera.position);
+                if (dist > 1.5) {
+                    dummy.translateZ(0.06); // 追擊速度
+                } else {
+                    // 攻擊玩家
+                    if (t - lastAttackTime > 1000) {
+                        takeDamage(15);
+                        lastAttackTime = t;
+                    }
+                }
+                
+                // 肢體動畫
+                const swing = Math.sin(t * 0.005) * 0.5;
+                for(let i=2; i<6; i++) dummy.children[i].rotation.x = (i%2==0 ? swing : -swing);
+            }
+            renderer.render(scene, camera);
+        }
+
+        // --- 系統事件 ---
         document.addEventListener('pointerlockchange', () => {
             if (document.pointerLockElement === document.body) {
                 gameActive = true;
                 document.getElementById('menu-panel').style.display = 'none';
                 document.getElementById('game-ui').style.display = 'block';
                 document.getElementById('ammo-ui').style.display = 'block';
-                if (!gameEnded) startTimer();
-            } else {
-                gameActive = false;
-            }
+                if (score === 0 && playerHP === 150) startTimer();
+            } else { gameActive = false; }
         });
-
-        document.addEventListener('mousedown', (e) => { if(e.button === 0) shoot(); });
-        document.addEventListener('keydown', (e) => {
-            keys[e.code] = true;
-            if (e.code === 'KeyR') reload();
-        });
-        document.addEventListener('keyup', (e) => keys[e.code] = false);
 
         document.addEventListener('mousemove', (e) => {
             if (gameActive) {
@@ -274,76 +295,39 @@
             }
         });
 
-        // --- 遊戲計時與結束 ---
+        document.addEventListener('mousedown', (e) => { if(e.button===0) shoot(); });
+        document.addEventListener('keydown', (e) => { keys[e.code]=true; if(e.code==='KeyR') reload(); });
+        document.addEventListener('keyup', (e) => keys[e.code]=false);
+
         function startTimer() {
-            document.getElementById('timer').innerText = gameTime;
             const itv = setInterval(() => {
-                if (!gameActive) return;
+                if (!gameActive || gameEnded) return;
                 gameTime--;
                 document.getElementById('timer').innerText = gameTime;
-                if (gameTime <= 0) {
-                    clearInterval(itv);
-                    endGame();
-                }
+                if (gameTime <= 0) { clearInterval(itv); endGame("時間到！"); }
             }, 1000);
         }
 
-        async function endGame() {
+        async function endGame(title) {
+            if (gameEnded) return;
             gameEnded = true;
             document.exitPointerLock();
-            const name = prompt(`時間到！得分: ${score}\n輸入名字登入排行榜:`, "玩家1");
+            document.getElementById('end-title').innerText = title;
+            const name = prompt(`${title}\n擊殺數: ${score}\n請輸入你的代號:`, "無名戰士") || "未知";
             
             try {
-                await addDoc(collection(db, "leaderboard"), {
-                    name: name || "未知",
-                    score: score,
-                    at: serverTimestamp()
-                });
-
-                const q = query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(5));
-                const snap = await getDocs(q);
+                await addDoc(collection(db, "leaderboard"), { name, score, at: serverTimestamp() });
+                const snap = await getDocs(query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(5)));
                 const list = document.getElementById('leaderboard-list');
                 list.innerHTML = "";
                 snap.forEach(d => {
                     const data = d.data();
-                    list.innerHTML += `<li><span>${data.name}</span> <span>${data.score} 分</span></li>`;
+                    list.innerHTML += `<li><span>${data.name}</span> <span>${data.score} Kills</span></li>`;
                 });
                 document.getElementById('leaderboard-panel').style.display = 'block';
-                document.getElementById('game-ui').style.display = 'none';
-                document.getElementById('ammo-ui').style.display = 'none';
             } catch (e) { console.error(e); }
         }
 
-        // --- 渲染循環 ---
-        camera.position.set(0, 1.7, 5);
-        function animate(t) {
-            requestAnimationFrame(animate);
-            if (gameActive) {
-                const moveSpeed = 0.12;
-                const dir = new THREE.Vector3();
-                if (keys['KeyW']) dir.z -= 1;
-                if (keys['KeyS']) dir.z += 1;
-                if (keys['KeyA']) dir.x -= 1;
-                if (keys['KeyD']) dir.x += 1;
-                dir.normalize();
-
-                const yaw = camera.rotation.y;
-                camera.position.x += (Math.sin(yaw) * dir.z + Math.sin(yaw + Math.PI/2) * dir.x) * moveSpeed;
-                camera.position.z += (Math.cos(yaw) * dir.z + Math.cos(yaw + Math.PI/2) * dir.x) * moveSpeed;
-
-                // 小人簡單 AI
-                dummy.translateZ(0.05);
-                if (Math.abs(dummy.position.x) > 48 || Math.abs(dummy.position.z) > 48) dummy.rotation.y += Math.PI;
-                // 肢體動畫
-                const swing = Math.sin(t * 0.005) * 0.5;
-                dummy.children[2].rotation.x = swing; // L Arm
-                dummy.children[3].rotation.x = -swing; // R Arm
-                dummy.children[4].rotation.x = -swing; // L Leg
-                dummy.children[5].rotation.x = swing; // R Leg
-            }
-            renderer.render(scene, camera);
-        }
-        
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
